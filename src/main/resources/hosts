@@ -1,0 +1,12 @@
+[app_server_segment1]
+host1
+[app_server_segment2]
+host2
+host10
+
+[app_server:children]
+app_server_segment1
+app_server_segment2
+
+[mq]
+host3

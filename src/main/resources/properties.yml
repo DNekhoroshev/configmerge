@@ -1,0 +1,10 @@
+---
+property1: val1
+property2: val2
+property3: 
+  pval1: 12
+  pval2: 13
+  plav3: 
+    - abc
+    - def
+    - ghi
