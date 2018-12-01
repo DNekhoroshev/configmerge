@@ -58,13 +58,46 @@ public class ConfigPromoter {
 					currentGroup = new GroupEntry(groupName, lastGroup);
 				}
 			}
-		}		
+		}
+		
+		loadAllGroupsProperties(all);		
+		System.out.println(all);
+		
 	}	
 	
-	private void loadGroupProperties(GroupEntry group,File groupPropsFile) throws FileNotFoundException{
+	private void loadAllGroupsProperties(GroupEntry group){
+		
+		if(!group.getChilds().isEmpty()){
+			group.getChilds().forEach(this::loadAllGroupsProperties);
+		}
+		
+		File propertyFolder = varFolders.get(group.getName());
+		
+		if(propertyFolder==null)
+			return;
+		
+		try{
+			loadGroupProperties(group, propertyFolder);
+		}catch(IOException e){
+			e.printStackTrace();
+		}	
+		
+	}
+	
+	private void loadGroupProperties(GroupEntry group,File groupPropsDirectory) throws IOException {
+		Files.walk(Paths.get(groupPropsDirectory.getAbsolutePath()))
+			.filter(Files::isRegularFile)
+			.forEach((pFilePath)->group.getProperties().putAll(loadGroupPropertiesFromFile(pFilePath)));
+	}
+	
+	private Map<String, Object> loadGroupPropertiesFromFile(Path groupPropsFile){
 		Yaml yaml = new Yaml();
-		Map<String, Object> properties = yaml.load(new FileInputStream(groupPropsFile));
-		group.getProperties().putAll(properties);				
+		try {
+			return yaml.load(new FileInputStream(groupPropsFile.toFile()));
+		} catch (FileNotFoundException e) {			
+			e.printStackTrace();			
+		}					
+		return new HashMap<>();
 	}	
 	
 	private static boolean isGroup(String s) {

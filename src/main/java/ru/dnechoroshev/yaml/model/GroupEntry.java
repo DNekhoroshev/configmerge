@@ -1,5 +1,6 @@
 package ru.dnechoroshev.yaml.model;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -7,8 +8,8 @@ import java.util.Set;
 public class GroupEntry {
 	private String name;
 	private GroupEntry parent;
-	private Set<GroupEntry> childs = new HashSet<>();
-	private Map<String, Object> properties;	
+	private Set<GroupEntry> childs = new HashSet<>();	 
+	private Map<String, Object> properties = new HashMap<>();	
 	
 	public GroupEntry(String name, GroupEntry parent) {
 		super();
@@ -63,12 +64,27 @@ public class GroupEntry {
 	
 	protected String getStringRepresentation(GroupEntry e, int level){
 		String levelMark = new String(new char[level]).replace("\0", "--");
+		String spaceMark = new String(new char[level]).replace("\0", "  ");
 		StringBuilder sb = new StringBuilder(levelMark).append(e.getName()).append("\n");
+		if(!this.properties.isEmpty()){
+			this.properties.forEach((k,v)->sb.append(String.format("%s%s = %s\n",spaceMark,k,v)));
+		}
+		
 		for(GroupEntry child : e.childs){
 			sb.append(e.getStringRepresentation(child, level+1));
 		}
 		return sb.toString();
 		
+	}
+	
+	public Object getProperty(String name){
+		if(properties.containsKey(name)){
+			return properties.get(name);
+		}
+		if(parent!=null){
+			return parent.getProperty(name);
+		}
+		return null;
 	}
 	
 	@Override
