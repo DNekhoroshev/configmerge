@@ -53,8 +53,12 @@ public class GroupEntry {
 		return childs;
 	}
 			
-	public void loadProperties(){
-		
+	public Map<String, Object> getProperties() {
+		return properties;
+	}
+
+	public void setProperties(Map<String, Object> properties) {
+		this.properties = properties;
 	}
 	
 	protected String getStringRepresentation(GroupEntry e, int level){
@@ -70,6 +74,6 @@ public class GroupEntry {
 	@Override
 	public String toString(){
 		return getStringRepresentation(this, 0);
-	}
+	}	
 	
 }
