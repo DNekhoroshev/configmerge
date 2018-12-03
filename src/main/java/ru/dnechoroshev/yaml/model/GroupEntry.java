@@ -1,7 +1,10 @@
 package ru.dnechoroshev.yaml.model;
 
+import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -9,6 +12,7 @@ public class GroupEntry {
 	private String name;
 	private GroupEntry parent;
 	private Set<GroupEntry> childs = new HashSet<>();	 
+	private File source;
 	private Map<String, Object> properties = new HashMap<>();	
 	
 	public GroupEntry(String name, GroupEntry parent) {
@@ -87,9 +91,41 @@ public class GroupEntry {
 		return null;
 	}
 	
+	public List<GroupEntry> lookup(String propertyName){
+		List<GroupEntry> result = new ArrayList<>();
+		if(properties.containsKey(propertyName))
+			result.add(this);
+		for(GroupEntry child : childs){
+			result.addAll(child.lookup(propertyName));
+		}
+		return result;
+	}
+	
+	public boolean isParentOf(GroupEntry ge){
+		boolean result = false;
+		for(GroupEntry child : childs){
+			if(child==ge){
+				return true;
+			}else{
+				result = result || child.isParentOf(ge);
+				if(result)
+					return true;
+			}			
+		}
+		return false;
+	}
+	
 	@Override
 	public String toString(){
 		return getStringRepresentation(this, 0);
+	}
+
+	public File getSource() {
+		return source;
+	}
+
+	public void setSource(File source) {
+		this.source = source;
 	}	
 	
 }

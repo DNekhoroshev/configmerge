@@ -87,13 +87,17 @@ public class ConfigPromoter {
 	private void loadGroupProperties(GroupEntry group,File groupPropsDirectory) throws IOException {
 		Files.walk(Paths.get(groupPropsDirectory.getAbsolutePath()))
 			.filter(Files::isRegularFile)
-			.forEach((pFilePath)->group.getProperties().putAll(loadGroupPropertiesFromFile(pFilePath)));
+			.forEach((pFilePath)->{
+				File source = pFilePath.toFile();
+				group.getProperties().putAll(loadGroupPropertiesFromFile(source));
+				group.setSource(source);				
+			});
 	}
 	
-	private Map<String, Object> loadGroupPropertiesFromFile(Path groupPropsFile){
+	private Map<String, Object> loadGroupPropertiesFromFile(File groupPropsFile){
 		Yaml yaml = new Yaml();
 		try {
-			return yaml.load(new FileInputStream(groupPropsFile.toFile()));
+			return yaml.load(new FileInputStream(groupPropsFile));
 		} catch (FileNotFoundException e) {			
 			e.printStackTrace();			
 		}					
