@@ -81,9 +81,9 @@ public class GroupEntry {
 		
 	}
 	
-	public Object getProperty(String name){
+	public Property getProperty(String name){
 		if(properties.containsKey(name)){
-			return properties.get(name);
+			return new Property(name, properties.get(name), this.source)  ;
 		}
 		if(parent!=null){
 			return parent.getProperty(name);
@@ -91,14 +91,32 @@ public class GroupEntry {
 		return null;
 	}
 	
-	public List<GroupEntry> lookup(String propertyName){
+	public void setProperty(String name,Object value) {
+		
+	}
+	
+	public List<GroupEntry> findChildGroupsByPropertyName(String propertyName){
 		List<GroupEntry> result = new ArrayList<>();
 		if(properties.containsKey(propertyName))
 			result.add(this);
 		for(GroupEntry child : childs){
-			result.addAll(child.lookup(propertyName));
+			result.addAll(child.findChildGroupsByPropertyName(propertyName));
 		}
 		return result;
+	}
+	
+	public GroupEntry lookupChildGroup(String childGroupName){
+		
+		for(GroupEntry child : childs){
+			if(child.getName().equals(childGroupName)){
+				return child;
+			}else{
+				GroupEntry result = child.lookupChildGroup(childGroupName);
+				if(result!=null)
+					return result;
+			}
+		}
+		return null;
 	}
 	
 	public boolean isParentOf(GroupEntry ge){
