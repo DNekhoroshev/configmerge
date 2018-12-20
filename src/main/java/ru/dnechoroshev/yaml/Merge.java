@@ -24,19 +24,26 @@ public class Merge {
 		for(GroupEntry sourceChild : sourceGroup.getChilds()) {
 			GroupEntry targetChild = targetGroup.lookupChildGroup(sourceChild.getName());
 			
+			if(targetChild==null) {
+				targetGroup.addChild(sourceChild);
+				continue;
+			}
+			
 			Map<String,Object> sourceChildProps =  sourceChild.getProperties();
 			Map<String,Object> targetChildProps =  targetChild.getProperties();
 			
 			for(Entry<String,Object> childPropsEntry : sourceChildProps.entrySet()) {				
 				String key = childPropsEntry.getKey();
 				if(targetChildProps.get(key)!=null) {
-					targetChildProps.put(childPropsEntry.getKey(), mergeValues(childPropsEntry.getValue(), targetChildProps.get(key)));
+					//targetChildProps.put(childPropsEntry.getKey(), mergeValues(childPropsEntry.getValue(), targetChildProps.get(key)));
+				}else {
+					//target
 				}
 			}
 		}
 	}
 	
-	private Object mergeValues(Object source,Object target) {
+	private Object mergeValues(Object source,Object target) throws InstantiationException, IllegalAccessException {
 		if((source instanceof String)&&(target instanceof String)) {
 			return source;
 		}else if ((source instanceof List)&&(target instanceof List)) {
@@ -55,7 +62,7 @@ public class Merge {
 		return null;
 	}
 	
-	private void mergeMapIntoListOfMaps(Map<String,Object> m,List<Map<String,Object>> targetList) {
+	private void mergeMapIntoListOfMaps(Map<String,Object> m,List<Map<String,Object>> targetList) throws InstantiationException, IllegalAccessException {
 		String id = (String)m.get("id");
 		if(id==null)
 			throw new RuntimeException("Id is not correctly set in object: "+m);
@@ -75,12 +82,21 @@ public class Merge {
 	}
 	
 	private void mergeMaps(Map<String,Object> source,Map<String,Object> target) {
-		if(!source.get("id").equals(target.get("id")))
-			throw new RuntimeException(String.format("Cannot merge maps with dirrerent ids: %s :: %s",source,target));
+		
+		if("no".equals(target.get("AcceptanceStrategy"))) {
+			return;
+		}else if ("never".equals(source.get("PropagationStrategy"))) {
+			return;
+		}
 		
 		for(Entry<String,Object> sourceFieldEntry : source.entrySet()) {
 			Map<String,Object> sourceField = (Map<String,Object>)sourceFieldEntry.getValue();
 			Map<String,Object> targetField = (Map<String,Object>)target.get(sourceFieldEntry.getKey());
+			
+			if(targetField==null) {
+				target.put(sourceFieldEntry.getKey(), new HashMap<String,Object>());
+			}
+			
 			if (isLeafValue(sourceField)){
 				target.put(sourceFieldEntry.getKey(), propagate(sourceField, targetField));
 			}else{
