@@ -2,9 +2,8 @@ package ru.dnechoroshev.yaml;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.regex.Matcher;
@@ -21,10 +20,13 @@ public class YamlPreprocessor {
 	
 	public static void main(String[] args) {
 		try {
-			Scanner scanner = new Scanner(new File("D:\\Temp\\group_vars\\app_server_segment2\\test.yml"));
-			List<Map<String,Object>> resultList = new ArrayList<>();
+			//Scanner scanner = new Scanner(new File("D:\\Temp\\group_vars\\app_server_segment2\\test.yml"));
+			Scanner scanner = new Scanner(new File("c:\\tmp\\test.yml"));
+			Map<String,Object> resultList = new LinkedHashMap<>();
 			while (scanner.hasNextLine()) {
-				resultList.add(readProperty(scanner, 0));				
+				String s = scanner.nextLine();
+				if (!checkPropertyStatus(s).equals(PropertyStatus.NONE))
+					resultList.putAll(readProperty(scanner,s,0));				
 			}
 			scanner.close();
 		} catch (FileNotFoundException e) {
@@ -32,22 +34,34 @@ public class YamlPreprocessor {
 		}
 	}
 	
-	private static Map<String,Object> readProperty(Scanner scanner,int level){
-		String s = scanner.nextLine(); 
-		PropertyStatus status = checkPropertyStatus(s);
+	private static Map<String,Object> readProperty(Scanner scanner,String line,int level){		 
+		PropertyStatus status = checkPropertyStatus(line); 
 		Map<String,Object> result = new HashMap<String,Object>();
 		switch(status) {
-			case NONE: {
+			case NONE: {				
 				return null;
 			}
 			case SIMPLE: {
-				return getProperty(s);
+				return getProperty(line);
 			}
 			case COMPLEX: {
 				if(scanner.hasNextLine()) {
-					result.put(getPropertyName(s), readProperty(scanner, level+1));
+					while(scanner.hasNextLine()){
+						String newProperty = scanner.nextLine();
+						if(!checkPropertyStatus(newProperty).equals(PropertyStatus.NONE)){
+							if(getLevel(newProperty)>level){
+								result.put(getPropertyName(line), readProperty(scanner,newProperty,getLevel(newProperty)));
+							}else{
+								return result;
+							}
+						}
+					}
+					
+					
+					
+					
 				}else {
-					result.put(getPropertyName(s), null);
+					result.put(getPropertyName(line), null);
 				}
 			}
 		}

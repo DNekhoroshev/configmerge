@@ -1,0 +1,17 @@
+# Timer period for some operation
+#@Promote=NameAndValue
+#@Reception=Disabled
+time : '12000'
+ 
+# Greeting information for User
+#@Promote=Name
+greetings : Hello
+ 
+#@Reception=Enabled
+title : Internal greetings
+ 
+#@Promote=Disabled
+name : User
+ 
+# Logger name
+route.looger.name : ru.sberbank.cib.yaml
