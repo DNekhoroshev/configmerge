@@ -49,6 +49,7 @@ public class YamlPreprocessor {
 				result.put("__id__", text.getElementName());
 				result.put("__comments__", text.getComments());
 				result.put("__level__", text.getLevel());
+				result.put("__annotations__", text.getAnnotations());
 				int nextLevel = text.getNextLevel();
 				if(nextLevel>level){
 					Map<String,Object> element = null;

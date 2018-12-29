@@ -17,6 +17,7 @@ import ru.dnechoroshev.yaml.model.PropertyStatus;
 public class YamlText {
 	ArrayList<String> lines = new ArrayList<>();
 	ArrayList<String> commentLines = new ArrayList<>();
+	ArrayList<Annotation> annotations = new ArrayList<>();
 	
 	int pointer = 0;
 	
@@ -54,6 +55,10 @@ public class YamlText {
 		return commentLines;
 	}
 	
+	public List<Annotation> getAnnotations(){
+		return annotations;
+	}
+	
 	public void setPosition(int p){
 		this.pointer = p;
 	}
@@ -64,12 +69,16 @@ public class YamlText {
 	
 	public boolean seekNextElement(int level){		
 		commentLines = new ArrayList<>();
+		annotations = new ArrayList<>();
 		int init_pos = pointer;
 		while(next()){
 			if((checkPropertyStatus()==PropertyStatus.NONE)){
 				continue;
-			}else if((checkPropertyStatus()==PropertyStatus.COMMENT)){
+			}else if((checkPropertyStatus()==PropertyStatus.COMMENT)){				
 				commentLines.add(currentLine().trim());
+				if(isAnnotation()){
+					annotations.add(getAnnotation());
+				}
 				continue;
 			}
 			if(getLevel()<level){
@@ -101,11 +110,13 @@ public class YamlText {
 		return s.indexOf(s.trim());
 	}
 	
-	public boolean isAnnotation(String s) {
-		return s.trim().startsWith("#@");
+	public boolean isAnnotation() {
+		String s = currentLine().trim();
+		return s.startsWith("#@");
 	}
 	
-	public Annotation getAnnotation(String s) {
+	public Annotation getAnnotation() {
+		String s = currentLine().trim();
 		String[] aValues = s.replace("#@", "").split("=");
 		return new Annotation(aValues[0].trim(), aValues[1].trim());
 	}
@@ -139,11 +150,12 @@ public class YamlText {
 		Matcher m = propertyPattern.matcher(s.trim());
 		if(m.find()) {
 			String propertyName = StringUtils.chop(m.group(0)).trim();
-			String propertyValue = RegExUtils.removeFirst(s, propertyPattern).trim();					
+			String propertyValue = RegExUtils.removeFirst(s.trim(), propertyPattern);					
 			Map<String,Object> prop = new HashMap<>();
-			prop.put(propertyName, propertyValue);
+			prop.put("__value__", propertyValue);
 			prop.put("__id__", propertyName);
 			prop.put("__comments__", commentLines);
+			prop.put("__annotations__", annotations);
 			prop.put("__level__", getLevel());
 			return prop;
 		}
