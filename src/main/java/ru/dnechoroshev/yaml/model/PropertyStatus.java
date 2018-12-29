@@ -1,5 +1,5 @@
 package ru.dnechoroshev.yaml.model;
 
 public enum PropertyStatus {
-	SIMPLE,COMPLEX,COMMENT,NONE
+	SIMPLE,MAP,LIST,COMMENT,NONE
 }

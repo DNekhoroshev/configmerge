@@ -115,6 +115,11 @@ public class YamlText {
 		return s.startsWith("#@");
 	}
 	
+	public boolean isList(){
+		String s = currentLine().trim();
+		return s.startsWith("-");
+	}
+	
 	public Annotation getAnnotation() {
 		String s = currentLine().trim();
 		String[] aValues = s.replace("#@", "").split("=");
@@ -132,7 +137,14 @@ public class YamlText {
 		
 		if(s.trim().matches("^[a-zA-Z0-9\\-_]+:(.)*")) {
 			if(s.trim().endsWith(":")) {
-				return PropertyStatus.COMPLEX;
+				int startPointer = pointer;
+				seekNextElement(getNextLevel());
+				s = currentLine();
+				pointer = startPointer;
+				if(s.trim().startsWith("-")){
+					return PropertyStatus.LIST;
+				}
+				return PropertyStatus.MAP;
 			}else {
 				return PropertyStatus.SIMPLE;
 			}
