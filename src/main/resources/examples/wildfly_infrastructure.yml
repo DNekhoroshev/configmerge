@@ -1,0 +1,132 @@
+--- 
+wildfly_instances: 
+  - name: IN
+    # Общие параметры 
+    install_dir: '{{wildfly_install_parent_dir}}/wildfly-{{wildfly_version}}-in'      
+    wildfly_java_opts: '-Xms512m -Xmx2048m -XX:MetaspaceSize=96M -XX:MaxMetaspaceSize=256m -Djava.net.preferIPv4Stack=true'
+    port_offset: 0
+    admin_users:
+        - name: wfadmin          
+          pwd: '{{Wildfly.SEG1_IN.security.admin_password}}'
+    servicename: 'wildfly-in'     
+    # Адрес работающего экземпляра WildFly 
+    serverAddress: '{{inventory_hostname}}:9990'
+    secureServerAddress: 'https-remoting://{{inventory_hostname}}:9993'    
+    # Путь к интерпретатору команд CLI
+    cli_sh: '{{wildfly_install_parent_dir}}/wildfly-{{wildfly_version}}-in/bin/jboss-cli.sh'
+    # Путь (на хосте WildFly) к папке для локальной загрузке бинарных файлов из Nexus
+    binary_path: '/tmp/deployments/IN'
+    # Путь (на хосте WildFly) к папке с хранилищем сертификатов
+    security_path: '{{wildfly_install_parent_dir}}/wildfly-{{wildfly_version}}-in/standalone/configuration/security'
+    
+    # Перечень хранилищ JKS
+    jks_personal:       
+       password: "{{Wildfly.SEG1_IN.security.jks_personal_password}}"
+       state: present
+    jks_trusted:       
+       password: "{{Wildfly.SEG1_IN.security.jks_trusted_password}}"
+       state: present
+    dn_role_mappings:
+       - dn: 'CN\=SomeClientCerts,\ OU\=ITI\ Platforms,\ O\=Sberbank\ CIB,\ L\=Moscow,\ ST\=Moscow,\ C\'
+         roles: 'Role1,Role2'
+    
+    # Перечисление объектов конфигурации, которые необходимо создать/удалить. Параметры:
+    # path: путь в дереве ресурсов WildFly к объекту конфигурации
+    # parameters: параметры, с которыми надо создать объект конфигурации
+    # state: состояние объекта (присутствует/отсутствует)
+    configuration_objects: []
+    # Перечисление атрибутов конфигурации, которые необходимо установить. Параметры:
+    # path: путь в дереве ресурсов WildFly к объекту конфигурации,атрибут которого надо изменить
+    # name: имя атрибута
+    # value: значение атрибута
+    attributes:        
+        - path: /subsystem=jgroups/channel=ee
+          name: cluster
+          value: '{{Environment}}_{{segment_name}}_IN'
+    # Перечисление модулей внешних библиотек (JDBC-драйверы, адаптеры, и т. д.) Возможные значения параметра state:
+    # - present : развернуть модуль (если отсутствует)
+    # - absent : удалить модуль (если присутствует)
+    # - redeploy : переразвернуть модуль (если отсутствует, будет развернут)
+    libraries: []
+    modules: []
+    # Перечисление источников данных JDBC. Возможные значения параметра state:
+    # - present : создать источник данных (если отсутствует)
+    # - absent : удалить источник данных (если присутствует)
+    # - recreate : пересоздать истоник данных (если отсутствует, будет создан)
+    datasources: '{{wildfly_in_datasources}}'    
+    # Перечисление адаптеров ресурсов. Возможные значения параметра state:
+    # - present : создать адаптер (если отсутствует)
+    # - absent : удалить адаптер (если присутствует)
+    # - recreate : пересоздать адаптер (если отсутствует, будет создан)
+    resource_adapters: '{{wildfly_in_resource_adapters}}'         
+    # Перечисление прикладынх модулей. Возможные значения параметра state:
+    # - present : развернуть модуль (если отсутствует)
+    # - absent : удалить модуль (если присутствует)
+    # - redeploy : переразвернуть модуль (если отсутствует, будет развернут)
+    wildfly_applications: '{{wildfly_in_applications}}'
+  - name: OUT
+    # Общие параметры 
+    install_dir: '{{wildfly_install_parent_dir}}/wildfly-{{wildfly_version}}-out'      
+    port_offset: 100
+    wildfly_java_opts: '-Xms512m -Xmx2048m -XX:MetaspaceSize=96M -XX:MaxMetaspaceSize=256m -Djava.net.preferIPv4Stack=true'
+    admin_users:
+        - name: wfadmin
+          pwd: '{{Wildfly.SEG1_OUT.security.admin_password}}' 
+    servicename: 'wildfly-out'     
+    # Адрес работающего экземпляра WildFly 
+    serverAddress: '{{inventory_hostname}}:10090'
+    secureServerAddress: 'https-remoting://{{inventory_hostname}}:10093'
+    # Флаг использования защищенного соединения при выполнении операций с WildFly
+    # ОБЯЗАТЕЛЬНО должен быть установлен после включения SSL (выполнения роли gmsb-setup-security)
+    useSecureAddress: 'False'
+    # Путь к интерпретатору команд CLI
+    cli_sh: '{{wildfly_install_parent_dir}}/wildfly-{{wildfly_version}}-out/bin/jboss-cli.sh'
+    # Путь (на хосте WildFly) к папке для локальной загрузке бинарных файлов из Nexus
+    binary_path: '/tmp/deployments/IN'
+    # Путь (на хосте WildFly) к папке с хранилищем сертификатов
+    security_path: '{{wildfly_install_parent_dir}}/wildfly-{{wildfly_version}}-out/standalone/configuration/security'
+    
+    # Перечень хранилищ JKS
+    jks_personal:        
+        password: "{{Wildfly.SEG1_OUT.security.jks_personal_password}}"
+        state: present
+    jks_trusted:        
+        password: "{{Wildfly.SEG1_OUT.security.jks_trusted_password}}"
+        state: present
+    dn_role_mappings:
+       - dn: 'CN\=SomeClientCerts,\ OU\=ITI\ Platforms,\ O\=Sberbank\ CIB,\ L\=Moscow,\ ST\=Moscow,\ C\'
+         roles: 'Role1,Role2'
+    # Перечисление объектов конфигурации, которые необходимо создать/удалить. Параметры:
+    # path: путь в дереве ресурсов WildFly к объекту конфигурации
+    # parameters: параметры, с которыми надо создать объект конфигурации
+    # state: состояние объекта (присутствует/отсутствует)
+    configuration_objects: []    
+    # Перечисление атрибутов конфигурации, которые необходимо установить. Параметры:
+    # path: путь в дереве ресурсов WildFly к объекту конфигурации,атрибут которого надо изменить
+    # name: имя атрибута
+    # value: значение атрибута
+    attributes:        
+        - path: /subsystem=jgroups/channel=ee
+          name: cluster
+          value: '{{Environment}}_{{segment_name}}_OUT'         
+    # Перечисление модулей внешних библиотек (JDBC-драйверы, адаптеры, и т. д.) Возможные значения параметра state:
+    # - present : развернуть модуль (если отсутствует)
+    # - absent : удалить модуль (если присутствует)
+    # - redeploy : переразвернуть модуль (если отсутствует, будет развернут)
+    libraries: []
+    modules: []            
+    # Перечисление источников данных JDBC. Возможные значения параметра state:
+    # - present : создать источник данных (если отсутствует)
+    # - absent : удалить источник данных (если присутствует)
+    # - recreate : пересоздать истоник данных (если отсутствует, будет создан)
+    datasources: '{{wildfly_out_datasources}}'
+    # Перечисление адаптеров ресурсов. Возможные значения параметра state:
+    # - present : создать адаптер (если отсутствует)
+    # - absent : удалить адаптер (если присутствует)
+    # - recreate : пересоздать адаптер (если отсутствует, будет создан)
+    resource_adapters: '{{wildfly_out_resource_adapters}}'
+    # Перечисление прикладынх модулей. Возможные значения параметра state:
+    # - present : развернуть модуль (если отсутствует)
+    # - absent : удалить модуль (если присутствует)
+    # - redeploy : переразвернуть модуль (если отсутствует, будет развернут)
+    wildfly_applications: '{{wildfly_out_applications}}'

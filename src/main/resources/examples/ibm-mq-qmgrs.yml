@@ -1,0 +1,260 @@
+---
+
+qmgrs:        
+    - name: GMSB_SEGMENT1_INOUT_DEV1
+      handleLimit: 1000
+      logType: lc
+      maxUncommitedMsgs: 100000
+      primaryLogFiles: 8
+      secondaryLogFiles: 4
+      logFilePages: 16384
+      deadLetterQueue: 'SYSTEM.DEAD.LETTER.QUEUE'          
+      listeners:
+        - name: 'TCP.LISTENER'
+          port: 1414            
+      channels:
+        - name: CIB.SVRCONN 
+          type: SVRCONN
+          ssl: 
+            enabled: 'yes'
+            cipher_suite: 'TLS_RSA_WITH_AES_128_CBC_SHA256'
+        - name: MUREX.SVRCONN 
+          type: SVRCONN
+          mcauser: 'murex'
+          ssl: 
+            enabled: 'yes'
+            sslpeer: 'CN=SBERBANK.CIB.GMBUS.MUREX-UAT'
+            cipher_suite: 'TLS_RSA_WITH_AES_128_CBC_SHA256'
+        - name: MKTCONN.SVRCONN 
+          type: SVRCONN
+          mcauser: 'mktconn'
+          ssl: 
+            enabled: 'yes'
+            sslpeer: 'CN=algodev01.msk.trd.ru, OU=Integration, O=Sberbank CIB, L=Moscow, ST=Moscow, C=RU'
+            cipher_suite: 'TLS_RSA_WITH_AES_128_CBC_SHA256'
+        - name: FIXEDGE.SVRCONN
+          type: SVRCONN
+          mcauser: 'fixedge'
+          ssl:
+            enabled: 'yes'
+            sslpeer: 'CN=fix-uat-1.msk.trd.ru'
+            cipher_suite: 'TLS_RSA_WITH_AES_128_CBC_SHA256'
+      scripts:
+        - create.sh
+        - init.sh
+        - init.mqsc
+      Queues: '{{GMSB_SEGMENT1_INOUT_DEV1.Queues}}'
+      Topics: '{{GMSB_SEGMENT1_INOUT_DEV1.Topics}}'
+      Subscriptions: '{{GMSB_SEGMENT1_INOUT_DEV1.Subscriptions}}'
+      monitoring_queue_history_file: '/usr/lib/check_mk_agent/local/history/GMSB_SEGMENT1_INOUT_DEV1.history'
+      monitoring_queue_filter_regex: "^MQAI|^AMQ"
+      monitoring_channel_filter_regex: "^SYSTEM"
+      monitoring_key_repository: '/var/mqm/ssl/client'
+      monitoring_thresholds:
+        qm_connection_limit:
+          warn: 150
+          crit: 300
+        queues_limits:
+          fill_limit:
+            warn: 50
+            crit: 75
+          uncom_msgs:
+            crit: 1
+      security:
+          authorities:
+            - name: murex
+              type: group
+              permissions: +connect +inq
+            - name: gmbus
+              type: group
+              permissions: +connect +inq
+            - name: mktconn
+              type: group
+              permissions: +connect +inq
+          sslkeyrepodir: /opt/ibm_mq_qmgrs/data/GMSB_SEGMENT1_INOUT_DEV1/ssl
+          sslkeyreponame: key
+          sslkeyrepopass: '{{MQ.GMSB_SEGMENT1_INOUT.sslkeyrepopass}}'
+          ssl_default_cipher_suite: 'TLS_RSA_WITH_AES_128_CBC_SHA256'
+          ssl_peer: ''
+          cert:
+            file: 'gmsb_segment1_inout_ssl_store.zip'                
+            alias: 'ibmwebspheremqgmsb_segment1_inout_{{Environment}}'
+            state: 'present'
+            
+    - name: GMSB_SEGMENT1_INTERNAL_DEV1
+      handleLimit: 1000
+      logType: lc
+      maxUncommitedMsgs: 100000 
+      primaryLogFiles: 8
+      secondaryLogFiles: 4
+      logFilePages: 16384
+      deadLetterQueue: 'SYSTEM.DEAD.LETTER.QUEUE'          
+      listeners:
+        - name: TCP.LISTENER
+          port: 1415
+      channels:
+        - name: CIB.SVRCONN
+          type: SVRCONN
+          ssl: 
+            enabled: 'yes'
+            cipher_suite: 'TLS_RSA_WITH_AES_128_CBC_SHA256'
+      scripts:
+        - create.sh
+        - init.sh
+        - init.mqsc
+      Queues: '{{GMSB_SEGMENT1_INTERNAL_DEV1.Queues}}'
+      Topics: '{{GMSB_SEGMENT1_INTERNAL_DEV1.Topics}}'
+      Subscriptions: '{{GMSB_SEGMENT1_INTERNAL_DEV1.Subscriptions}}'
+      monitoring_queue_history_file: '/usr/lib/check_mk_agent/local/history/GMSB_SEGMENT1_INTERNAL_DEV1.history'
+      monitoring_queue_filter_regex: "^MQAI"
+      monitoring_channel_filter_regex: "^SYSTEM"
+      monitoring_key_repository: '/var/mqm/ssl/client'
+      security:                     
+          sslkeyrepodir: /opt/ibm_mq_qmgrs/data/GMSB_SEGMENT1_INTERNAL_DEV1/ssl
+          sslkeyreponame: key
+          sslkeyrepopass: '{{MQ.GMSB_SEGMENT1_INTERNAL.sslkeyrepopass}}'
+          ssl_default_cipher_suite: 'TLS_RSA_WITH_AES_128_CBC_SHA256'
+          ssl_peer: ''
+          cert:
+            file: 'gmsb_segment1_internal_ssl_store.zip'               
+            alias: 'ibmwebspheremqgmsb_segment1_internal_{{Environment}}'
+            state: 'present'
+    - name: GMSB_SEGMENT2_INOUT_DEV1
+      handleLimit: 1000
+      logType: lc
+      maxUncommitedMsgs: 100000
+      primaryLogFiles: 8
+      secondaryLogFiles: 4
+      logFilePages: 16384
+      deadLetterQueue: 'SYSTEM.DEAD.LETTER.QUEUE'          
+      listeners:
+        - name: 'TCP.LISTENER'
+          port: 1416           
+      channels:
+        - name: CIB.SVRCONN 
+          type: SVRCONN
+          ssl: 
+            enabled: 'yes'
+            cipher_suite: 'TLS_RSA_WITH_AES_128_CBC_SHA256' 
+        - name: MUREX.SVRCONN 
+          type: SVRCONN
+          mcauser: 'murex'
+          ssl: 
+            enabled: 'yes'
+            sslpeer: 'CN=SBERBANK.CIB.GMBUS.MUREX-UAT'
+            cipher_suite: 'TLS_RSA_WITH_AES_128_CBC_SHA256'         
+      scripts:
+        - create.sh
+        - init.sh
+        - init.mqsc
+      Queues: '{{GMSB_SEGMENT2_INOUT_DEV1.Queues}}'
+      Topics: '{{GMSB_SEGMENT2_INOUT_DEV1.Topics}}'
+      Subscriptions: '{{GMSB_SEGMENT2_INOUT_DEV1.Subscriptions}}'
+      monitoring_queue_history_file: '/usr/lib/check_mk_agent/local/history/GMSB_SEGMENT2_INOUT_DEV1.history'
+      monitoring_queue_filter_regex: "^MQAI|^AMQ"
+      monitoring_channel_filter_regex: "^SYSTEM"
+      monitoring_key_repository: '/var/mqm/ssl/client'
+      monitoring_thresholds:
+        qm_connection_limit:
+          warn: 150
+          crit: 300
+        queues_limits:
+          fill_limit:
+            warn: 50
+            crit: 75
+          uncom_msgs:
+            crit: 1
+      security:       
+          authorities:
+            - name: murex
+              type: group
+              permissions: +connect +inq
+            - name: gmbus
+              type: group
+              permissions: +connect +inq
+          sslkeyrepodir: /opt/ibm_mq_qmgrs/data/GMSB_SEGMENT2_INOUT_DEV1/ssl
+          sslkeyreponame: key
+          sslkeyrepopass: '{{MQ.GMSB_SEGMENT2_INOUT.sslkeyrepopass}}'
+          ssl_default_cipher_suite: 'TLS_RSA_WITH_AES_128_CBC_SHA256'
+          ssl_peer: ''
+          cert:
+            file: 'gmsb_segment2_inout_ssl_store.zip'                
+            alias: 'ibmwebspheremqgmsb_segment2_inout_{{Environment}}'
+            state: 'present'
+            
+    - name: GMSB_SEGMENT2_INTERNAL_DEV1
+      handleLimit: 1000
+      logType: lc
+      maxUncommitedMsgs: 100000 
+      primaryLogFiles: 8
+      secondaryLogFiles: 4
+      logFilePages: 16384
+      deadLetterQueue: 'SYSTEM.DEAD.LETTER.QUEUE'          
+      listeners:
+        - name: TCP.LISTENER
+          port: 1417
+      channels:
+        - name: CIB.SVRCONN
+          type: SVRCONN
+          ssl: 
+            enabled: 'yes'
+            cipher_suite: 'TLS_RSA_WITH_AES_128_CBC_SHA256'
+      scripts:
+        - create.sh
+        - init.sh
+        - init.mqsc
+      Queues: '{{GMSB_SEGMENT2_INTERNAL_DEV1.Queues}}'
+      Topics: '{{GMSB_SEGMENT2_INTERNAL_DEV1.Topics}}'
+      Subscriptions: '{{GMSB_SEGMENT2_INTERNAL_DEV1.Subscriptions}}'
+      monitoring_queue_history_file: '/usr/lib/check_mk_agent/local/history/GMSB_SEGMENT2_INTERNAL_DEV1.history'
+      monitoring_queue_filter_regex: "^MQAI"
+      monitoring_channel_filter_regex: "^SYSTEM"
+      monitoring_key_repository: '/var/mqm/ssl/client'
+      security:                     
+          sslkeyrepodir: /opt/ibm_mq_qmgrs/data/GMSB_SEGMENT2_INTERNAL_DEV1/ssl
+          sslkeyreponame: key
+          sslkeyrepopass: '{{MQ.GMSB_SEGMENT2_INTERNAL.sslkeyrepopass}}'
+          ssl_default_cipher_suite: 'TLS_RSA_WITH_AES_128_CBC_SHA256'
+          ssl_peer: ''
+          cert:
+            file: 'gmsb_segment2_internal_ssl_store.zip'                
+            alias: 'ibmwebspheremqgmsb_segment2_internal_{{Environment}}'
+            state: 'present'
+    - name: GMSB_AUDIT_DEV1
+      handleLimit: 1000
+      logType: lc
+      maxUncommitedMsgs: 100000 
+      primaryLogFiles: 8
+      secondaryLogFiles: 4
+      logFilePages: 16384
+      deadLetterQueue: 'SYSTEM.DEAD.LETTER.QUEUE'          
+      listeners:
+        - name: TCP.LISTENER
+          port: 1418
+      channels:
+        - name: CIB.SVRCONN
+          type: SVRCONN
+          ssl: 
+            enabled: 'yes'
+            cipher_suite: 'TLS_RSA_WITH_AES_128_CBC_SHA256'
+      scripts:
+        - create.sh
+        - init.sh
+        - init.mqsc
+      Queues: '{{GMSB_AUDIT_DEV1.Queues}}'
+      Topics: '{{GMSB_AUDIT_DEV1.Topics}}'
+      Subscriptions: '{{GMSB_AUDIT_DEV1.Subscriptions}}'
+      monitoring_queue_history_file: '/usr/lib/check_mk_agent/local/history/GMSB_AUDIT_DEV1.history'
+      monitoring_queue_filter_regex: "^MQAI"
+      monitoring_channel_filter_regex: "^SYSTEM"
+      monitoring_key_repository: '/var/mqm/ssl/client'
+      security:                     
+          sslkeyrepodir: /opt/ibm_mq_qmgrs/data/GMSB_AUDIT_DEV1/ssl
+          sslkeyreponame: key
+          sslkeyrepopass: '{{MQ.GMSB_AUDIT.sslkeyrepopass}}'
+          ssl_default_cipher_suite: 'TLS_RSA_WITH_AES_128_CBC_SHA256'
+          ssl_peer: ''
+          cert:
+            file: 'gmsb_audit_ssl_store.zip'
+            alias: 'ibmwebspheremqgmsb_audit_{{Environment}}'
+            state: 'present'

@@ -1,0 +1,55 @@
+wildfly_in_applications: 
+     - artifact_id: "hawtio-wildfly"
+       extension: "war"
+       version: "2.0.2"       
+       state: absent     
+     - group_id: "ru.sberbank.cib.gmbus"
+       artifact_id: "availability-check-service"
+       extension: "war"
+       version: "1.4"
+       config: "availability.check.service.yml"
+       state: absent
+     - group_id: "ru.sberbank.cib.gmbus"
+       artifact_id: "availability-check-service"
+       extension: "war"
+       version: "1.6"
+       config: "availability.check.service.yml"
+       state: absent
+     - group_id: "ru.sberbank.cib.gmbus"
+       artifact_id: "availability-check-service"
+       extension: "war"
+       version: "1.7"
+       config: "availability.check.service.yml"
+       state: present
+     - group_id: "ru.sberbank.cib.gmbus"
+       artifact_id: "ce.fx.trades.in"
+       extension: "war"
+       version: "1.0.0-SNAPSHOT"
+       config: "ce.fx.trades.in.yml"
+       state: absent
+     - group_id: "ru.sberbank.cib.gmbus"
+       artifact_id: "ce.fx.trades.in"
+       extension: "war"
+       version: "1.0.0"
+       config: "ce.fx.trades.in.yml"
+       state: present
+     - group_id: "ru.sberbank.cib.gmbus"
+       artifact_id: "lims.all.trades.murex.in"
+       extension: "war"
+       version: "1.0.0-SNAPSHOT"
+       config: "lims.all.trades.murex.in.yml"
+       state: present
+     - group_id: "ru.sberbank.cib.gmbus"
+       artifact_id: "trtn.fx.trades.in"
+       extension: "war"
+       version: "1.0.0-SNAPSHOT"
+       config: "trtn.fx.trades.in.yml"
+       state: absent
+     - group_id: "ru.sberbank.cib.gmbus"
+       artifact_id: "bloomberg.fx.trades.in"
+       extension: "war"
+       version: "1.0.0-SNAPSHOT"
+       config: "bloomberg.fx.trades.in.yml"
+       state: present
+
+
