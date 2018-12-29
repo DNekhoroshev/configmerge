@@ -38,10 +38,7 @@ public class YamlPreprocessor {
 		}	
 		
 		PropertyStatus status = text.checkPropertyStatus();		
-		switch(status) {
-			case NONE: {				
-				return null;
-			}
+		switch(status) {			
 			case SIMPLE: {
 				return text.getProperty();
 			}
@@ -50,6 +47,8 @@ public class YamlPreprocessor {
 				String name = text.getElementName();
 				name = name + "";
 				result.put("__id__", text.getElementName());
+				result.put("__comments__", text.getComments());
+				result.put("__level__", text.getLevel());
 				int nextLevel = text.getNextLevel();
 				if(nextLevel>level){
 					Map<String,Object> element = null;
@@ -61,8 +60,10 @@ public class YamlPreprocessor {
 				}
 				return result;
 			}
-		}
-		return null;
+			default: {
+				return null;
+			}
+		}		
 	}
 	
 	private static void print(Map<String,Object> m){
