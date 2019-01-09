@@ -21,7 +21,7 @@ public class YamlText {
 	
 	int pointer = 0;
 	
-	Pattern propertyPattern = Pattern.compile("^[a-zA-Z0-9\\-_]+:");
+	Pattern propertyPattern = Pattern.compile("^[a-zA-Z0-9\\-_ ]+:");
 	
 	YamlText(Scanner scanner){		 
 		while (scanner.hasNextLine()) {
@@ -95,6 +95,11 @@ public class YamlText {
 	
 	public int getNextLevel(){
 		int init_pos = pointer;
+		int init_level = 0;
+		if (init_pos>0){
+			init_level=getLevel();
+		}
+		
 		while(next()){			
 			if(checkPropertyStatus()!=PropertyStatus.NONE){
 				int level = getLevel(); 
@@ -102,11 +107,14 @@ public class YamlText {
 				return level;
 			}
 		}
-		return -1;		
+		return init_level;		
 	}	
 	
 	public int getLevel() {
-		String s = currentLine(); 
+		String s = currentLine();
+		//if(this.isListElement()){
+		//	s = s.replaceFirst("-", " ");
+		//}
 		return s.indexOf(s.trim());
 	}
 	
@@ -115,7 +123,7 @@ public class YamlText {
 		return s.startsWith("#@");
 	}
 	
-	public boolean isList(){
+	public boolean isListElement(){
 		String s = currentLine().trim();
 		return s.startsWith("-");
 	}
@@ -134,27 +142,29 @@ public class YamlText {
 		if(s.trim().startsWith("#")){
 			return PropertyStatus.COMMENT;
 		}
-		
-		if(s.trim().matches("^[a-zA-Z0-9\\-_]+:(.)*")) {
-			if(s.trim().endsWith(":")) {
-				int startPointer = pointer;
-				seekNextElement(getNextLevel());
-				s = currentLine();
-				pointer = startPointer;
-				if(s.trim().startsWith("-")){
-					return PropertyStatus.LIST;
-				}
+		if(s.trim().startsWith("-")){
+			return PropertyStatus.LISTELEMENT;
+		}
+		if(s.trim().matches("^[a-zA-Z0-9\\-_ ]+:(.)*")) {
+			if(s.trim().endsWith(":")) {								
 				return PropertyStatus.MAP;
 			}else {
 				return PropertyStatus.SIMPLE;
 			}
-		}
+		}		
 		return PropertyStatus.NONE;
 	}
 	
 	public String getElementName() {
 		String s = currentLine().trim();
-		return StringUtils.chop(s);
+		if(s.startsWith("-")){
+			s = s.substring(1).trim();
+		}
+		int colIndex = s.indexOf(':');
+		if(colIndex>0){
+			return s.substring(0, colIndex);
+		}
+		return "";
 	}
 	
 	public Map<String,Object> getProperty() {
@@ -162,6 +172,10 @@ public class YamlText {
 		Matcher m = propertyPattern.matcher(s.trim());
 		if(m.find()) {
 			String propertyName = StringUtils.chop(m.group(0)).trim();
+			if(propertyName.startsWith("-")){
+				propertyName = propertyName.substring(1);
+			}
+				
 			String propertyValue = RegExUtils.removeFirst(s.trim(), propertyPattern);					
 			Map<String,Object> prop = new HashMap<>();
 			prop.put("__value__", propertyValue);

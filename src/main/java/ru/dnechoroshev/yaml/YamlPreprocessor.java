@@ -23,9 +23,9 @@ public class YamlPreprocessor {
 			Map<String,Object> resultList = new LinkedHashMap<>();			
 			int rootLevel = yText.getNextLevel();			
 			Map<String,Object> element = null;			
-			while((element = getElement(yText, rootLevel))!=null){
-				resultList.put((String)element.get("__id__"), element);
-				element.remove("__id__");
+			while((readElement(yText, rootLevel,resultList))){
+				//resultList.put((String)element.get("__id__"), element);
+				//element.remove("__id__");
 			}
 			
 			System.out.println(resultList);
@@ -35,72 +35,73 @@ public class YamlPreprocessor {
 		}
 	}
 	
-	private static Map<String,Object> getElement(YamlText text,int level){		 
+	private static boolean readElement(YamlText text,int level,Map<String,Object> parent){		 
 		if(!text.seekNextElement(level)){
-			return null;
+			return false;
 		}		
 				
 		PropertyStatus status = text.checkPropertyStatus();		
 		switch(status) {			
 			case SIMPLE: {
-				return text.getProperty();
+				Map<String,Object> property = text.getProperty();
+				parent.put((String)property.get("__id__"), property);
+				property.remove("__id__");			
+				return true;
+								
 			}
 			case MAP: {
-				Map<String,Object> result = new LinkedHashMap<>();				
 				String name = text.getElementName();
-				name = name + "";
-				result.put("__id__", text.getElementName());
+				
+				Map<String,Object> result = new LinkedHashMap<>();									
 				result.put("__comments__", text.getComments());
 				result.put("__level__", text.getLevel());
 				result.put("__annotations__", text.getAnnotations());
+				
+				parent.put(text.getElementName(), result);
+				
 				int nextLevel = text.getNextLevel();
-				if(nextLevel>level){
-					Map<String,Object> element = null;
-					while((element = getElement(text, nextLevel))!=null){
-						print(element);
-						result.put((String)element.get("__id__"), element);
-						element.remove("__id__");
+				if(nextLevel>level){					
+					while((readElement(text, nextLevel,result))){
+						print(result);					
 					}
 				}
-				return result;
+				return true;
 			}
-			case LIST: {
-				Map<String,Object> result = new LinkedHashMap<>();				
-				String name = text.getElementName();
-				name = name + "";
-				result.put("__id__", text.getElementName());
-				result.put("__comments__", text.getComments());
-				result.put("__level__", text.getLevel());
-				result.put("__annotations__", text.getAnnotations());
-				result.put("__list__", new ArrayList<Map<String,Object>>());
-				return result;
+			case LISTELEMENT: {
+				
+				if(parent.get("__list__")==null){
+					parent.put("__list__", new ArrayList<Map<String,Object>>());						
+				}
+				
+				@SuppressWarnings("unchecked")
+				List<Map<String,Object>> parentList = (List<Map<String,Object>>)parent.get("__list__");								
+				
+				do {
+					String name = text.getElementName();
+	
+					Map<String, Object> result = new LinkedHashMap<>();
+					result.put("__comments__", text.getComments());
+					result.put("__level__", text.getLevel());
+					result.put("__annotations__", text.getAnnotations());
+					result.put(text.getElementName(), text.getProperty());
+	
+					parentList.add(result);
+					
+					int nextLevel = text.getNextLevel();
+					if (nextLevel > level) {
+						while ((readElement(text, nextLevel, result))) {
+							print(result);
+						}
+					}
+				} while (text.seekNextElement(level));
+				
+				return true;
 			}
 			default: {
-				return null;
+				return false;
 			}
 		}		
 	}
-	
-	private static List<Map<String,Object>> getList(YamlText text, int level){
-		List<Map<String,Object>> result = new ArrayList<>();			
-			 
-		Map<String,Object> element = null;
-		Map<String,Object> listElement = null;
-		while(text.getLevel()>=level){			
-			if(text.getLevel()==level){
-				//Starts next list element
-				listElement = new LinkedHashMap<>();				
-				result.add(listElement);				 
-			}
-			element = getElement(text, text.getLevel());
-			listElement.put((String)element.get("__id__"), element);
-			
-		}
-		
-		return result;
-		
-	}
-	
 	
 	private static void print(Map<String,Object> m){
 		for(Entry<String,Object> e : m.entrySet()){
