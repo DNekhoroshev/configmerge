@@ -115,6 +115,14 @@ public class YamlText {
 		return s.indexOf(s.trim());
 	}
 	
+	public int getAbsoluteLevel() {
+		String s = currentLine();		
+		if(s.trim().startsWith("-")){
+			s = s.replaceFirst("-", " ");
+		}
+		return s.indexOf(s.trim());
+	}
+	
 	public boolean isAnnotation() {
 		String s = currentLine().trim();
 		return s.startsWith("#@");
@@ -170,16 +178,16 @@ public class YamlText {
 		if(m.find()) {
 			String propertyName = StringUtils.chop(m.group(0)).trim();
 			if(propertyName.startsWith("-")){
-				propertyName = propertyName.substring(1);
+				propertyName = propertyName.substring(1).trim();
 			}
 				
 			String propertyValue = RegExUtils.removeFirst(s.trim(), propertyPattern);					
 			Map<String,Object> prop = new HashMap<>();
+			prop.put("__level__", getAbsoluteLevel());
 			prop.put("__value__", propertyValue);
 			prop.put("__id__", propertyName);
 			prop.put("__comments__", commentLines);
-			prop.put("__annotations__", annotations);
-			prop.put("__level__", getLevel());
+			prop.put("__annotations__", annotations);			
 			return prop;
 		}
 		return null;

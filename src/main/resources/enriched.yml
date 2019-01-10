@@ -1,0 +1,84 @@
+---
+attr1:
+  level: 0
+  comments:
+   - '#@Anno0=Value0'
+  Anno0: Value0
+  value: 
+   subattr11:
+     level: 4
+     comments: 
+      - '#comment_subattr11'
+      - '#comment_subattr21'
+     value: 
+      a11: 
+         value:  'v11'
+         level: 8
+      a12: 
+         value:  'v12'
+         level: 8
+   subattr12:
+     level: 4
+     value: 
+      b11: 
+         value:  'g11'
+         level: 8
+         Anno1: Value1
+         Anno2: Value2
+      b12: 
+         value:  'g12'
+         level: 8
+attr2:
+  level: 0
+  value: 
+   subattr21:
+     level: 4
+     value: 
+      c11: 
+         value:  'f11'
+         level: 8
+   subattr22: 
+      value:  'qqq'
+      level: 4
+   subattr33:
+      level: 4
+      value: 
+       - level: 10
+         value: 
+          val1: 
+             value:  'num1'
+             level: 10
+       - level: 10
+         value: 
+          val1: 
+             value:  'num2'
+             level: 10
+       - level: 10
+         value: 
+          val1: 
+             value:  'num3'
+             level: 10
+   subattr44:
+      level: 4
+      Anno5: Value5
+      value: 
+       - level: 10
+         comments: 
+          - '#@Anno6=Value6'
+         Anno6: Value6
+         value: 
+          name: 
+             value:  name1
+             level: 10
+             Anno6: Value6
+          val: 
+             value:  value1
+             level: 10
+       - level: 10
+         value: 
+          name: 
+             value:  name2
+             level: 10
+          val: 
+             value:  value2
+             level: 10

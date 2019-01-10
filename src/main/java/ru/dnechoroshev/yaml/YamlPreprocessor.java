@@ -12,6 +12,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Scanner;
 
+import org.yaml.snakeyaml.Yaml;
+
 import ru.dnechoroshev.yaml.model.Annotation;
 import ru.dnechoroshev.yaml.model.PropertyStatus;
 
@@ -42,57 +44,95 @@ public class YamlPreprocessor {
 		 String fileName = "c:/tmp/test2.yml";
 		 FileWriter fileWriter = new FileWriter(fileName);
 		 PrintWriter printWriter = new PrintWriter(fileWriter);
-		 StringBuilder result = new StringBuilder("---");
+		 StringBuilder result = new StringBuilder("---\n");
 		 for(Entry<String,Object> entry : yml.entrySet()){
-			 String propertyName = entry.getKey();
-			 Map<String,Object> propertyValue = (Map<String,Object>)entry.getValue();
-			 System.out.println(getPropertyValue(propertyValue,false));
-		 }
-		 System.out.println("************************");
-	}
+			 String elementName = entry.getKey();
+			 Map<String,Object> elementValue = (Map<String,Object>)entry.getValue();
+			 String enrichedYaml = serialyzeElement(elementValue,0,false); 
+			 result.append(enrichedYaml);
+		 }		 
+		 System.out.println(result.toString());
+		 
+		 Yaml yaml = new Yaml();
+		 Map<String, Object> obj = yaml.load(result.toString());
+		 System.out.println(obj);
+		 
+	}	
 	
-	private static String getPropertyValue(Map<String,Object> prop,boolean listElement){
+	private static String serialyzeElement(Map<String,Object> prop,int propLevel,boolean listElement){
 			
 		int level = (int)prop.get("__level__"); 
 		
-		StringBuilder result = new StringBuilder(appendLevel(level)+(listElement?"- ":""));
+		StringBuilder result = new StringBuilder(appendLevel(propLevel)+(listElement?"- ":""));
 		
 		String id = (String)prop.get("__id__");
 		List<String> commentList = (List<String>)prop.get("__comments__");
+		List<Annotation> annotationList = (List<Annotation>)prop.get("__annotations__");
 		String value = (String)prop.get("__value__");
-		List<Map<String,Object>> valueList = (List<Map<String,Object>>)prop.get("__list__");
-				
+		List<Map<String,Object>> valueList = (List<Map<String,Object>>)prop.get("__list__");				
+	
 		if(value!=null){
-			result.append(id+": "+value).append("\n");
-		}else if(valueList!=null){
-			result.append(id+":").append("\n");
-			for(Map<String,Object> val : valueList){
-				result.append(getPropertyValue(val,true));
+			result.append(id+": ").append("\n").append(appendLevel(propLevel+3))
+				  .append("value: ").append(value).append("\n").append(appendLevel(propLevel+3))
+				  .append("level: ").append(level).append("\n");
+			for(Annotation a: annotationList){
+				result.append(appendLevel(propLevel+3)).append(a.getName()).append(": ").append(a.getValue()).append("\n");
 			}
-		}else{
-			
-			if(id!=null)
-				result.append(id+":").append("\n");
+				  
+		}else if(valueList!=null){
+			result.append(id+":").append("\n").append(appendLevel(propLevel+3))
+				  .append("level: ").append(level).append("\n");
+			for(Annotation a: annotationList){
+				result.append(appendLevel(propLevel+3)).append(a.getName()).append(": ").append(a.getValue()).append("\n");
+			}
+			result.append(appendLevel(propLevel+3)).append("value: ").append("\n");
+			for(Map<String,Object> val : valueList){
+				result.append(serialyzeElement(val,propLevel+4,true));
+			}
+		}else{			
+			if(id!=null){
+				result.append(id+":").append("\n");				
+			}
+			boolean startValues = true;	
 			for(Entry<String,Object> entry : prop.entrySet()){
-				String key = entry.getKey();
-								
+				String key = entry.getKey();							
 				switch(key){
-					case "__comments__": {
-						continue;
+					case "__comments__": {						
+						if (!commentList.isEmpty()) {
+							result.append(appendLevel(propLevel + 2)).append("comments: ").append("\n");
+							for (String comment : commentList) {
+								result.append(appendLevel(propLevel + 3)).append("- '").append(comment).append("'\n");
+							}
+						}
+						break;
 					}
 					case "__annotations__": { 
-						continue;
+						for(Annotation a: annotationList){
+							result.append(appendLevel(propLevel+2)).append(a.getName()).append(": ").append(a.getValue()).append("\n");
+						}
+						break;
 					}
-					case "__level__": { 
-						continue;
+					case "__level__": {						
+						if(listElement){
+							result.append("level: ").append(level).append("\n");
+							listElement = false;
+						}else{
+							result.append(appendLevel(propLevel+2)).append("level: ").append(level).append("\n");
+						}
+						break;
 					}
 					case "__id__": { 
-						continue;
+						break;
 					}
 					default:{			
-						Map<String,Object> mapValue = (Map<String,Object>)entry.getValue();
-						int subLevel = (int)mapValue.get("__level__"); 
-						String propertySubValue = getPropertyValue(mapValue,false);
+						if(startValues){
+							result.append(appendLevel(propLevel+2)).append("value: ").append("\n");
+							startValues =false;
+						}
+						
+						Map<String,Object> mapValue = (Map<String,Object>)entry.getValue();					
+						
+						String propertySubValue = serialyzeElement(mapValue,propLevel+3,false);
 						if(listElement){
 							propertySubValue = propertySubValue.replaceAll("^\\s+","");
 							listElement = false;
@@ -104,6 +144,16 @@ public class YamlPreprocessor {
 		}	
 		
 		return result.toString();
+	}
+	
+	private static String getValueWithMetaData(String value, List<Annotation> annotations){
+		StringBuilder result = new StringBuilder("{value: "+value);
+		for(Annotation a : annotations){
+			result.append(",").append(a.getName()).append(":").append(a.getValue());
+		}
+		result.append("}");
+		return result.toString();
+		
 	}
 	
 	private static String appendLevel(int level){		
@@ -129,8 +179,8 @@ public class YamlPreprocessor {
 				String name = text.getElementName();
 				
 				Map<String,Object> result = new LinkedHashMap<>();									
-				result.put("__comments__", text.getComments());
-				result.put("__level__", text.getLevel());
+				result.put("__level__", text.getAbsoluteLevel());
+				result.put("__comments__", text.getComments());				
 				result.put("__annotations__", text.getAnnotations());
 				result.put("__id__", name);				
 				parent.put(name, result);
@@ -156,8 +206,8 @@ public class YamlPreprocessor {
 					String name = text.getElementName();
 	
 					Map<String, Object> result = new LinkedHashMap<>();
-					result.put("__comments__", text.getComments());
-					result.put("__level__", text.getLevel());
+					result.put("__level__", text.getAbsoluteLevel());
+					result.put("__comments__", text.getComments());					
 					result.put("__annotations__", text.getAnnotations());
 					result.put(text.getElementName(), text.getProperty());
 	
