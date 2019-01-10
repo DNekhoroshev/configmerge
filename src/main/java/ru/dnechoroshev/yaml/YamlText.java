@@ -191,7 +191,7 @@ public class YamlText {
 			return prop;
 		}else{
 			String propertyName = "__empty__";			
-			String propertyValue = RegExUtils.removeFirst(s.trim(), propertyPattern);					
+			String propertyValue = RegExUtils.removeFirst(s.trim(), "-");					
 			Map<String,Object> prop = new HashMap<>();
 			prop.put("__level__", getAbsoluteLevel());
 			prop.put("__value__", propertyValue);

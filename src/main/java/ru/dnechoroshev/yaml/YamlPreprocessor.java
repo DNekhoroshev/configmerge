@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -33,6 +34,11 @@ public class YamlPreprocessor {
 			}
 			
 			System.out.println(globalResult);
+			
+			Yaml yaml = new Yaml();
+			StringWriter writer = new StringWriter();
+			yaml.dump(globalResult, writer);
+			System.out.println(writer.toString());
 			//save(globalResult);
 						
 		} catch (FileNotFoundException e) {
@@ -54,9 +60,8 @@ public class YamlPreprocessor {
 		 System.out.println(result.toString());
 		 
 		 Yaml yaml = new Yaml();
-		 Map<String, Object> obj = yaml.load(result.toString());
-		 System.out.println(obj);
-		 
+		 Map<String, Object> obj = yaml.load(result.toString());		 
+		 System.out.println(obj);		 
 	}	
 	
 	private static String serialyzeElement(Map<String,Object> prop,int propLevel,boolean listElement){
