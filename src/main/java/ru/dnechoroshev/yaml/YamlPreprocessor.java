@@ -33,7 +33,7 @@ public class YamlPreprocessor {
 			}
 			
 			System.out.println(globalResult);
-			save(globalResult);
+			//save(globalResult);
 						
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -61,6 +61,9 @@ public class YamlPreprocessor {
 	
 	private static String serialyzeElement(Map<String,Object> prop,int propLevel,boolean listElement){
 			
+		if(prop==null){
+			System.out.println(prop);
+		}
 		int level = (int)prop.get("__level__"); 
 		
 		StringBuilder result = new StringBuilder(appendLevel(propLevel)+(listElement?"- ":""));

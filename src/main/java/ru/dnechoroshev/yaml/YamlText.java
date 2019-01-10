@@ -141,7 +141,7 @@ public class YamlText {
 	
 	public PropertyStatus checkPropertyStatus() {
 		String s = currentLine();
-		if((s==null)||(s.trim().isEmpty())) {
+		if((s==null)||(s.trim().isEmpty())||("---".equals(s.trim()))) {
 			return PropertyStatus.NONE;
 		}
 		if(s.trim().startsWith("#")){
@@ -169,7 +169,7 @@ public class YamlText {
 		if(colIndex>0){
 			return s.substring(0, colIndex);
 		}
-		return "";
+		return "__empty__";
 	}
 	
 	public Map<String,Object> getProperty() {
@@ -189,8 +189,17 @@ public class YamlText {
 			prop.put("__comments__", commentLines);
 			prop.put("__annotations__", annotations);			
 			return prop;
-		}
-		return null;
+		}else{
+			String propertyName = "__empty__";			
+			String propertyValue = RegExUtils.removeFirst(s.trim(), propertyPattern);					
+			Map<String,Object> prop = new HashMap<>();
+			prop.put("__level__", getAbsoluteLevel());
+			prop.put("__value__", propertyValue);
+			prop.put("__id__", propertyName);
+			prop.put("__comments__", commentLines);
+			prop.put("__annotations__", annotations);			
+			return prop;
+		}		
 	}
 	
 }
