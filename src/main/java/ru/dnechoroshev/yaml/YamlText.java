@@ -111,10 +111,7 @@ public class YamlText {
 	}	
 	
 	public int getLevel() {
-		String s = currentLine();
-		//if(this.isListElement()){
-		//	s = s.replaceFirst("-", " ");
-		//}
+		String s = currentLine();		
 		return s.indexOf(s.trim());
 	}
 	
