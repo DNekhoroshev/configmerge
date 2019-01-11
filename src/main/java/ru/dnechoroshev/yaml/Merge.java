@@ -1,5 +1,6 @@
 package ru.dnechoroshev.yaml;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,15 +61,38 @@ public class Merge {
 			return target;
 		}
 		return null;
+	}	
+	
+	private void mergeStringIntoListOfStrings(String s,List<String> targetList) {		
+		if(!targetList.contains(s))
+			targetList.add(s);
 	}
 	
-	private void mergeMapIntoListOfMaps(Map<String,Object> m,List<Map<String,Object>> targetList) throws InstantiationException, IllegalAccessException {
-		String id = (String)m.get("id");
+	private static String getIdFieldName(Map<String,Object> m){
+		Map<String,Object> value = (Map)m.get("value");
+		if(value!=null){
+			return (String)value.get("Id");
+		}
+		return null;
+	}
+	
+	private static String getId(Map<String,Object> m){
+		String idField = getIdFieldName(m);
+		if(idField!=null){
+			Map<String,Object> value = (Map)m.get("value");
+			Map<String,Object> idMap = (Map)value.get(idField);
+			return (String)idMap.get("value");
+		}
+		return null;
+	}	
+	
+	private static void mergeMapIntoListOfMaps(Map<String,Object> m,List<Map<String,Object>> targetList) {
+		String id = getId(m);
 		if(id==null)
 			throw new RuntimeException("Id is not correctly set in object: "+m);
 		
 		for(Map<String,Object> targetElement : targetList) {
-			if(id.equals(targetElement.get("id"))) {
+			if(id.equals(getId(targetElement))) {
 				mergeMaps(m, targetElement);
 				return;
 			}
@@ -76,38 +100,33 @@ public class Merge {
 		targetList.add(m);
 	}
 	
-	private void mergeStringIntoListOfStrings(String s,List<String> targetList) {		
-		if(!targetList.contains(s))
-			targetList.add(s);
+	public static void mergeLists(List<Map<String,Object>> source,List<Map<String,Object>> target){
+		for(Map<String,Object> sourceElement : source){
+			mergeMapIntoListOfMaps(sourceElement, target);
+		}
 	}
 	
 	public static void mergeMaps(Map<String,Object> source,Map<String,Object> target) {
 		
-		if("no".equals(target.get("AcceptanceStrategy"))) {
+		if("Disabled".equals(target.get("Reception"))) {
 			return;
-		}else if ("never".equals(source.get("PropagationStrategy"))) {
+		}else if ("Disabled".equals(source.get("Promote"))) {
 			return;
 		}
 		
 		for(Entry<String,Object> sourceFieldEntry : source.entrySet()) {
 			
 			String sourceKey = sourceFieldEntry.getKey();
-			switch(sourceKey){
-				case "level":{
-					target.put("level", sourceFieldEntry.getValue());
-					break;
-				}case "comments":{
-					target.put("comments", sourceFieldEntry.getValue());
-					break;
-				}case "PropagationStrategy":{
-					break;
-				}case "AcceptanceStrategy":{
-					break;
-				}default:{
-					Map<String,Object> sourceField = (Map<String,Object>)sourceFieldEntry.getValue();
+			
+			if("level".equals(sourceKey)||"comments".equals(sourceKey)||"Promote".equals(sourceKey)){
+				target.put(sourceKey, sourceFieldEntry.getValue());
+			}else {
+				Object sourceValue = sourceFieldEntry.getValue();
+				if(sourceValue instanceof Map){
+					Map<String,Object> sourceField = (Map<String,Object>)sourceValue;
 					Map<String,Object> targetField = (Map<String,Object>)target.get(sourceFieldEntry.getKey());
 					
-					if(targetField==null) {
+					if((targetField==null)||!(targetField instanceof Map)) {
 						targetField = new HashMap<String,Object>();
 						target.put(sourceFieldEntry.getKey(), targetField);
 					}
@@ -117,10 +136,17 @@ public class Merge {
 					}else{
 						mergeMaps(sourceField, targetField);
 					}
-					break;
+				}if(sourceValue instanceof List){
+					List<Map<String,Object>> sourceField = (List<Map<String,Object>>)sourceValue;
+					List<Map<String,Object>> targetField = (List<Map<String,Object>>)target.get(sourceFieldEntry.getKey());
+					
+					if((targetField==null)||!(targetField instanceof List)) {
+						targetField = new ArrayList<Map<String,Object>>();
+						target.put(sourceFieldEntry.getKey(), targetField);
+					}				
+					
 				}
-			}		
-			
+			}			
 		}
 		
 	}
@@ -130,18 +156,18 @@ public class Merge {
 		Map<String,Object> sourceField = (Map<String,Object>)source.get(fieldName);
 		Map<String,Object> targetField = (Map<String,Object>)target.get(fieldName);
 		
-		if("no".equals(targetField.get("AcceptanceStrategy")))
+		if("Disabled".equals(targetField.get("Reception")))
 			return;
 		
 		targetField.put("level", sourceField.get("level"));
 		targetField.put("comments", sourceField.get("comments"));
-		targetField.put("PropagationStrategy", sourceField.get("PropagationStrategy"));
+		targetField.put("Promote", sourceField.get("Promote"));
 		
-		if("value".equals(sourceField.get("PropagationStrategy")))
+		if("NameAndValue".equals(sourceField.get("Promote")))
 			targetField.put("value", sourceField.get("value"));
-		else if("empty".equals(sourceField.get("PropagationStrategy")))
+		else if("Name".equals(sourceField.get("Promote")))
 			targetField.put("value", "");
-		else if("never".equals(sourceField.get("PropagationStrategy"))){
+		else if("Disabled".equals(sourceField.get("Promote"))){
 			targetField.remove(fieldName);		
 		}		
 				

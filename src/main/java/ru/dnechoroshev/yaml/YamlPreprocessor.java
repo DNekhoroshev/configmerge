@@ -26,15 +26,20 @@ public class YamlPreprocessor {
 			Map<String,Object> source = loadYML("c:/tmp/csv/source.yml");
 			Map<String,Object> target = loadYML("c:/tmp/csv/target.yml");		
 			
-			Map<String,Object> transformedSource = transform(source);
+			Map<String,Object> transformedSource = transform(source);		
 			Map<String,Object> transformedTarget = transform(target);
-			
+									
 			System.out.println(transformedSource);
-			System.out.println(transformedTarget);
+			
+			enrichWithAnnotations(transformedSource, "Enabled", "NameAndValue",null);
+			
+			System.out.println(dump(transformedSource));
+			
+			/*enrichWithAnnotations(transformedTarget, "Enabled", "NameAndValue",null);
 			
 			Merge.mergeMaps(transformedSource, transformedTarget);
-		
-			System.out.println(dump(transformedTarget));
+			
+			System.out.println(dump(transformedTarget));*/
 						
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -60,6 +65,39 @@ public class YamlPreprocessor {
 		}
 		return result;
 	}
+	
+	private static void enrichWithAnnotations(Map<String,Object> yml,String acceptanceStrategy,String propagationStrategy,String id){
+		for(Entry<String,Object> entry : yml.entrySet()){			 
+			if (entry.getValue() instanceof Map) {
+				Map<String, Object> elementValue = (Map<String, Object>) entry.getValue();
+				String localAcceptanceStrategy = (String) elementValue.get("Reception");
+				String localPropagationStrategy = (String) elementValue.get("Promote");
+				if (localAcceptanceStrategy == null) {
+					localAcceptanceStrategy = acceptanceStrategy;
+					elementValue.put("Reception", localAcceptanceStrategy);
+				}
+				if (localPropagationStrategy == null) {
+					localPropagationStrategy = propagationStrategy;
+					elementValue.put("Promote", localPropagationStrategy);
+				}
+
+				if(id!=null){
+					elementValue.put("Id",id);
+				}
+				
+				enrichWithAnnotations(elementValue, localAcceptanceStrategy, localPropagationStrategy, null);
+			}else if (entry.getValue() instanceof List) {
+				if("comments".equals(entry.getKey())){
+					continue;
+				}
+				List<Map<String, Object>> elementList = (List<Map<String, Object>>) entry.getValue();
+				String localId = (String)yml.get("Id");				
+				for(Map<String,Object> elementValue : elementList){					
+					enrichWithAnnotations(elementValue, acceptanceStrategy, propagationStrategy, localId);
+				}
+			}
+		 }
+	}	
 	
 	private static Map<String,Object> transform(Map<String,Object> yml) throws IOException{
 		 StringBuilder result = new StringBuilder("---\n");
