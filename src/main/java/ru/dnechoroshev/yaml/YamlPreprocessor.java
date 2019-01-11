@@ -33,13 +33,13 @@ public class YamlPreprocessor {
 			
 			enrichWithAnnotations(transformedSource, "Enabled", "NameAndValue",null);
 			
-			System.out.println(dump(transformedSource));
+			//System.out.println(dump(transformedSource));
 			
-			/*enrichWithAnnotations(transformedTarget, "Enabled", "NameAndValue",null);
+			enrichWithAnnotations(transformedTarget, "Enabled", "NameAndValue",null);
 			
 			Merge.mergeMaps(transformedSource, transformedTarget);
 			
-			System.out.println(dump(transformedTarget));*/
+			System.out.println(dump(transformedTarget));
 						
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();

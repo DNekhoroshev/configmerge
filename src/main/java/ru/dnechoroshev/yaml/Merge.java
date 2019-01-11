@@ -91,8 +91,11 @@ public class Merge {
 		if(id==null)
 			throw new RuntimeException("Id is not correctly set in object: "+m);
 		
-		for(Map<String,Object> targetElement : targetList) {
-			if(id.equals(getId(targetElement))) {
+		for(Map<String,Object> targetElement : targetList) {			
+			if(id.equals(getId(targetElement))) {				
+				if("Disabled".equals(targetElement.get("Reception"))) {
+					return;
+				}
 				mergeMaps(m, targetElement);
 				return;
 			}
@@ -102,6 +105,9 @@ public class Merge {
 	
 	public static void mergeLists(List<Map<String,Object>> source,List<Map<String,Object>> target){
 		for(Map<String,Object> sourceElement : source){
+			if ("Disabled".equals(sourceElement.get("Promote"))) {
+				continue;
+			}
 			mergeMapIntoListOfMaps(sourceElement, target);
 		}
 	}
@@ -143,8 +149,9 @@ public class Merge {
 					if((targetField==null)||!(targetField instanceof List)) {
 						targetField = new ArrayList<Map<String,Object>>();
 						target.put(sourceFieldEntry.getKey(), targetField);
-					}				
+					}
 					
+					mergeLists(sourceField, targetField);					
 				}
 			}			
 		}

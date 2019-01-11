@@ -1,0 +1,21 @@
+#@Promote=NameAndValue
+attr1:    
+    #@Promote=Name
+    subattr11:        
+        a11: 'v11'        
+        a12: 'v12'    
+    subattr12:        
+        b11: 'g11'        
+        b12: 'g12'
+#@Promote=NameAndValue
+attr2:    
+    subattr21:        
+        c11: 'f11'
+    #@Promote=Disabled
+    subattr22: 'qqq'
+    #@Id=name
+    subattr44:        
+        - name: name1
+          value: value1        
+        - name: name2
+          value: value2
