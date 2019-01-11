@@ -22,53 +22,60 @@ public class YamlPreprocessor {
 	
 	public static void main(String[] args) throws IOException {
 		try {
-			//Scanner scanner = new Scanner(new File("D:\\Temp\\group_vars\\app_server_segment2\\test.yml"));
-			Scanner scanner = new Scanner(new File("c:\\tmp\\test.yml"));
-			//Scanner scanner = new Scanner(new File("C:\\Users\\DNekhoroshev\\git\\configuration.dev1\\group_vars\\mq\\ibm-mq-qmgrs.yml"));
-			YamlText yText = new YamlText(scanner);
-			scanner.close();
-			Map<String,Object> globalResult = new LinkedHashMap<>();			
-			int rootLevel = yText.getNextLevel();						
-			while((readElement(yText, rootLevel,globalResult))){
-				System.out.println("Loaded");
-			}
 			
-			System.out.println(globalResult);
+			Map<String,Object> source = loadYML("c:/tmp/csv/source.yml");
+			Map<String,Object> target = loadYML("c:/tmp/csv/target.yml");		
 			
-			Yaml yaml = new Yaml();
-			StringWriter writer = new StringWriter();
-			yaml.dump(globalResult, writer);
-			System.out.println(writer.toString());
-			//save(globalResult);
+			Map<String,Object> transformedSource = transform(source);
+			Map<String,Object> transformedTarget = transform(target);
+			
+			System.out.println(transformedSource);
+			System.out.println(transformedTarget);
+			
+			Merge.mergeMaps(transformedSource, transformedTarget);
+		
+			System.out.println(dump(transformedTarget));
 						
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
 	}
 	
-	private static void save(Map<String,Object> yml) throws IOException{
-		 String fileName = "c:/tmp/test2.yml";
-		 FileWriter fileWriter = new FileWriter(fileName);
-		 PrintWriter printWriter = new PrintWriter(fileWriter);
+	private static String dump(Map<String,Object> yml){
+		Yaml yaml = new Yaml();
+	    StringWriter writer = new StringWriter();
+	    yaml.dump(yml, writer);
+	    return writer.toString();
+	}
+	
+	private static Map<String,Object> loadYML(String path) throws FileNotFoundException{
+		
+		Scanner scanner = new Scanner(new File(path));		
+		YamlText yText = new YamlText(scanner);
+		scanner.close();
+		Map<String,Object> result = new LinkedHashMap<>();			
+		int rootLevel = yText.getNextLevel();						
+		while((readElement(yText, rootLevel,result))){
+			System.out.println("Loaded");
+		}
+		return result;
+	}
+	
+	private static Map<String,Object> transform(Map<String,Object> yml) throws IOException{
 		 StringBuilder result = new StringBuilder("---\n");
-		 for(Entry<String,Object> entry : yml.entrySet()){
-			 String elementName = entry.getKey();
+		 
+		 for(Entry<String,Object> entry : yml.entrySet()){			 
 			 Map<String,Object> elementValue = (Map<String,Object>)entry.getValue();
 			 String enrichedYaml = serialyzeElement(elementValue,0,false); 
 			 result.append(enrichedYaml);
-		 }		 
-		 System.out.println(result.toString());
+		 }	 
 		 
 		 Yaml yaml = new Yaml();
-		 Map<String, Object> obj = yaml.load(result.toString());		 
-		 System.out.println(obj);		 
+		 return yaml.load(result.toString());		 
 	}	
 	
 	private static String serialyzeElement(Map<String,Object> prop,int propLevel,boolean listElement){
 			
-		if(prop==null){
-			System.out.println(prop);
-		}
 		int level = (int)prop.get("__level__"); 
 		
 		StringBuilder result = new StringBuilder(appendLevel(propLevel)+(listElement?"- ":""));

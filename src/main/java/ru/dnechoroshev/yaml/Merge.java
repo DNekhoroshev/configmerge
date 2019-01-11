@@ -81,7 +81,7 @@ public class Merge {
 			targetList.add(s);
 	}
 	
-	private void mergeMaps(Map<String,Object> source,Map<String,Object> target) {
+	public static void mergeMaps(Map<String,Object> source,Map<String,Object> target) {
 		
 		if("no".equals(target.get("AcceptanceStrategy"))) {
 			return;
@@ -90,43 +90,65 @@ public class Merge {
 		}
 		
 		for(Entry<String,Object> sourceFieldEntry : source.entrySet()) {
-			Map<String,Object> sourceField = (Map<String,Object>)sourceFieldEntry.getValue();
-			Map<String,Object> targetField = (Map<String,Object>)target.get(sourceFieldEntry.getKey());
 			
-			if(targetField==null) {
-				target.put(sourceFieldEntry.getKey(), new HashMap<String,Object>());
-			}
+			String sourceKey = sourceFieldEntry.getKey();
+			switch(sourceKey){
+				case "level":{
+					target.put("level", sourceFieldEntry.getValue());
+					break;
+				}case "comments":{
+					target.put("comments", sourceFieldEntry.getValue());
+					break;
+				}case "PropagationStrategy":{
+					break;
+				}case "AcceptanceStrategy":{
+					break;
+				}default:{
+					Map<String,Object> sourceField = (Map<String,Object>)sourceFieldEntry.getValue();
+					Map<String,Object> targetField = (Map<String,Object>)target.get(sourceFieldEntry.getKey());
+					
+					if(targetField==null) {
+						targetField = new HashMap<String,Object>();
+						target.put(sourceFieldEntry.getKey(), targetField);
+					}
+					
+					if (isLeafValue(sourceField)){
+						propagate(source,target,sourceFieldEntry.getKey());
+					}else{
+						mergeMaps(sourceField, targetField);
+					}
+					break;
+				}
+			}		
 			
-			if (isLeafValue(sourceField)){
-				target.put(sourceFieldEntry.getKey(), propagate(sourceField, targetField));
-			}else{
-				mergeMaps(sourceField, targetField);
-			}
 		}
 		
 	}
 	
-	private Map<String,Object> propagate(Map<String,Object> source,Map<String,Object> target) {
+	public static void propagate(Map<String,Object> source,Map<String,Object> target, String fieldName) {
 		
-		if(target==null)
-			target=new HashMap<>();
+		Map<String,Object> sourceField = (Map<String,Object>)source.get(fieldName);
+		Map<String,Object> targetField = (Map<String,Object>)target.get(fieldName);
 		
-		if("no".equals(target.get("AcceptanceStrategy")))
-			return target;
+		if("no".equals(targetField.get("AcceptanceStrategy")))
+			return;
 		
-		if("value".equals(source.get("PropagationStrategy")))
-			target.put("value", source.get("value"));
-		else if("empty".equals(source.get("PropagationStrategy")))
-			target.put("value", "");
-		else if("never".equals(source.get("PropagationStrategy")))
-			target=null;
+		targetField.put("level", sourceField.get("level"));
+		targetField.put("comments", sourceField.get("comments"));
+		targetField.put("PropagationStrategy", sourceField.get("PropagationStrategy"));
 		
-		return target;
+		if("value".equals(sourceField.get("PropagationStrategy")))
+			targetField.put("value", sourceField.get("value"));
+		else if("empty".equals(sourceField.get("PropagationStrategy")))
+			targetField.put("value", "");
+		else if("never".equals(sourceField.get("PropagationStrategy"))){
+			targetField.remove(fieldName);		
+		}		
 				
 	}
 	
-	private boolean isLeafValue(Map<String,Object> m) {
-		return m.containsKey("configmerge.leaf");
+	public static boolean isLeafValue(Map<String,Object> m) {
+		return (m.get("value") instanceof java.lang.String);
 	}
 
 }
