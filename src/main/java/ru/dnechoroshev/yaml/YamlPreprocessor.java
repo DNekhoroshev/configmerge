@@ -35,15 +35,59 @@ public class YamlPreprocessor {
 			
 			//System.out.println(dump(transformedSource));
 			
-			enrichWithAnnotations(transformedTarget, "Enabled", "NameAndValue",null);
+			enrichWithAnnotations(transformedTarget, "Enabled", "NameAndValue",null);			
 			
-			Merge.mergeMaps(transformedSource, transformedTarget);
+			Merge.mergeMaps(transformedSource, transformedTarget);		
 			
-			System.out.println(dump(transformedTarget));
-						
+			System.out.println(dump(transformedTarget));			
+			
+			System.out.println("******************************************");
+			System.out.println(generateYaml(transformedTarget));
+			
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
+	}
+	
+   private static String generateYaml(Map<String,Object> enrichedYml){
+		StringBuilder result = new StringBuilder("---\n");
+		 
+		 for(Entry<String,Object> entry : enrichedYml.entrySet()){		 
+			 String enrichedYaml = serialyzeElement(entry.getKey(),(Map<String,Object>)entry.getValue(),false); 
+			 result.append(enrichedYaml);
+		 }
+		 
+		 return result.toString();
+	}	
+	
+	private static String serialyzeElement(String elementName, Map<String,Object> elementValue, boolean listElement){
+		
+		int level = (int)elementValue.get("level");
+		
+		StringBuilder result = new StringBuilder(appendLevel(level)+(listElement?"- ":""));			
+	
+		List<String> commentList = (List<String>)elementValue.get("comments");		
+		Object value = elementValue.get("value");
+	
+		if(value!=null){
+			if(value instanceof String){
+				result.append(elementName).append(":").append((String)value).append("\n");
+			}else if (value instanceof Map){			
+				Map<String,Object> mapValue = (Map)value;
+				result.append(elementName).append(":\n");
+				for(Entry<String,Object> subMap : mapValue.entrySet()){					
+					Map<String,Object> subMapValue = (Map)subMap.getValue();					
+					result.append(serialyzeElement(subMap.getKey(),subMapValue, false));					
+				}						
+			}else if(value instanceof List){
+				for(Map<String,Object> listValue : (List<Map>)value){
+					result.append(serialyzeElement(null,listValue,true));
+				}
+			}			  
+	
+		}	
+		
+		return result.toString();
 	}
 	
 	private static String dump(Map<String,Object> yml){
@@ -68,19 +112,23 @@ public class YamlPreprocessor {
 	
 	private static void enrichWithAnnotations(Map<String,Object> yml,String acceptanceStrategy,String propagationStrategy,String id){
 		for(Entry<String,Object> entry : yml.entrySet()){			 
-			if (entry.getValue() instanceof Map) {
+			if (entry.getValue() instanceof Map) {				
 				Map<String, Object> elementValue = (Map<String, Object>) entry.getValue();
 				String localAcceptanceStrategy = (String) elementValue.get("Reception");
 				String localPropagationStrategy = (String) elementValue.get("Promote");
+				
 				if (localAcceptanceStrategy == null) {
-					localAcceptanceStrategy = acceptanceStrategy;
-					elementValue.put("Reception", localAcceptanceStrategy);
+					localAcceptanceStrategy = acceptanceStrategy;					
 				}
 				if (localPropagationStrategy == null) {
-					localPropagationStrategy = propagationStrategy;
-					elementValue.put("Promote", localPropagationStrategy);
+					localPropagationStrategy = propagationStrategy;					
 				}
 
+				if(!"value".equals(entry.getKey())){
+					elementValue.put("Reception", localAcceptanceStrategy);
+					elementValue.put("Promote", localPropagationStrategy);
+				}
+				
 				if(id!=null){
 					elementValue.put("Id",id);
 				}
@@ -104,7 +152,7 @@ public class YamlPreprocessor {
 		 
 		 for(Entry<String,Object> entry : yml.entrySet()){			 
 			 Map<String,Object> elementValue = (Map<String,Object>)entry.getValue();
-			 String enrichedYaml = serialyzeElement(elementValue,0,false); 
+			 String enrichedYaml = enrichYaml(elementValue,0,false); 
 			 result.append(enrichedYaml);
 		 }	 
 		 
@@ -112,7 +160,7 @@ public class YamlPreprocessor {
 		 return yaml.load(result.toString());		 
 	}	
 	
-	private static String serialyzeElement(Map<String,Object> prop,int propLevel,boolean listElement){
+	private static String enrichYaml(Map<String,Object> prop,int propLevel,boolean listElement){
 			
 		int level = (int)prop.get("__level__"); 
 		
@@ -140,7 +188,7 @@ public class YamlPreprocessor {
 			}
 			result.append(appendLevel(propLevel+3)).append("value: ").append("\n");
 			for(Map<String,Object> val : valueList){
-				result.append(serialyzeElement(val,propLevel+4,true));
+				result.append(enrichYaml(val,propLevel+4,true));
 			}
 		}else{			
 			if(id!=null){
@@ -185,7 +233,7 @@ public class YamlPreprocessor {
 						
 						Map<String,Object> mapValue = (Map<String,Object>)entry.getValue();					
 						
-						String propertySubValue = serialyzeElement(mapValue,propLevel+3,false);
+						String propertySubValue = enrichYaml(mapValue,propLevel+3,false);
 						if(listElement){
 							propertySubValue = propertySubValue.replaceAll("^\\s+","");
 							listElement = false;

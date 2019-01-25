@@ -1,0 +1,351 @@
+---
+  - set_fact:
+     wf_instance: '{{item}}'  
+    
+  - name: Check unsecured port for wildfly instance - {{wf_instance.name}}
+    shell: '{{wf_instance.cli_sh}} --connect --controller={{wf_instance.serverAddress}} --command="version" --timeout=45000'
+    become: yes
+    become_user: '{{wildfly_user}}'
+    ignore_errors: yes    
+    register: wfinstance_console_check_unsecure
+    failed_when: wfinstance_console_check_unsecure.rc < 0
+  
+  - name: Check secured port for wildfly instance - {{wf_instance.name}}
+    shell: '{{wf_instance.cli_sh}} -Djavax.net.ssl.trustStore={{wf_instance.security_path}}/server.jks -Djavax.net.ssl.trustStorePassword={{wf_instance.jks_personal.password}} --connect --controller={{wf_instance.secureServerAddress}} --command="version" --timeout=45000'
+    become: yes
+    become_user: '{{wildfly_user}}'
+    ignore_errors: yes
+    register: wfinstance_console_check_secure
+    failed_when: wfinstance_console_check_secure.rc < 0
+  
+  # Задаем адрес контроллера 
+  - set_fact:
+     controller: '{{wf_instance.serverAddress}}'
+    when: wfinstance_console_check_unsecure.stdout.find('JBoss Admin Command-line Interface') >= 0
+
+  - set_fact:
+     controller: '{{wf_instance.secureServerAddress}} -Djavax.net.ssl.trustStore={{wf_instance.security_path}}/server.jks -Djavax.net.ssl.trustStorePassword={{wf_instance.jks_personal.password}} --timeout=45000'
+    when: wfinstance_console_check_secure.stdout.find('JBoss Admin Command-line Interface') >= 0
+  
+  - set_fact:
+        global_modules_list: ""
+  
+  # Создаем каталог для локальной загрузки бинарников из Nexus
+  - name: mkdir for applications binaries {{wf_instance.binary_path}}
+    file: 
+      name: "{{wf_instance.binary_path}}"
+      state: directory
+      recurse: yes
+      mode: 0755
+  
+  # Для работы custom-модуля wildfly_module необходимо загрузить бинарники из Nexus на локальный сервер (тот, на котором развернут WildFly)
+  - name: Get binaries to install for {{wf_instance.servicename}}
+    maven_artifact: 
+       group_id: '{{item.group_id}}'
+       artifact_id: '{{item.artifact_id}}'
+       extension: '{{item.extension}}'
+       classifier: '{{item.classifier|default("")}}'
+       version: '{{item.version}}'
+       repository_url: '{{maven.repository_url}}'
+       timeout: '{{maven.timeout}}'
+       username: '{{maven.username}}'
+       password: '{{maven.password}}'  
+       dest: '{{wf_instance.binary_path}}/{{item.artifact_id}}-{{item.version}}.{{item.extension}}'      
+       owner: '{{wildfly_user}}'
+       group: '{{wildfly_group}}'
+    ignore_errors: yes
+    when: item.group_id is defined and (item.state == 'present' or item.state == 'update')
+    with_items:
+         - '{{wildfly_common_libraries}}+{{wf_instance.libraries}}' 
+         - '{{wf_instance.wildfly_applications}}'
+
+  - name: Check wildfly instance {{wf_instance.servicename}} is running
+    shell: 'systemctl status {{wf_instance.servicename}}'
+    ignore_errors: no
+    become: yes  
+    register: wfinstance_status
+
+  - when: wfinstance_status.stdout.find('active (running)')>0
+    block:  
+      
+      - name: Use controller address
+        debug:
+            msg: "Controller: {{controller}}"               
+      
+      # Развертываем общие библиотеки. 
+      - name: Deploy common libraries (JDBC drivers, etc) - {{wf_instance.servicename}}
+        wildfly_application:
+           applications: '{{wildfly_common_libraries}}+{{wf_instance.libraries}}'
+           sourcepath: '{{wf_instance.binary_path}}'       
+           moduletypes: 'jar,rar'
+           serverAddress: '{{controller}}'
+           cli_sh: '{{wf_instance.cli_sh}}'
+        register: lib_deployment_result
+      
+      - name: Display installed libs - {{wf_instance.servicename}}
+        debug:
+           var: item
+        with_items:
+         - '{{lib_deployment_result.addedModules}}'
+
+      - name: Display uninstalled libs - {{wf_instance.servicename}}
+        debug:
+           var: item
+        with_items:
+         - '{{lib_deployment_result.removedModules}}'      
+
+      - name: Display failed libs - {{wf_instance.servicename}}
+        debug:
+           var: item
+        with_items:
+         - '{{lib_deployment_result.failedModules}}'
+      
+      # Развертываем модули wildfly 
+      - name: Deploy modules step 1 (create directories) - {{wf_instance.servicename}}
+        file: 
+          name: "{{wf_instance.install_dir}}/modules/{{item.path}}/main"
+          state: "directory"
+          recurse: yes
+          owner: '{{wildfly_user}}'
+          group: '{{wildfly_group}}'
+          mode: 0755
+        when: item.path is defined and item.state == 'present'
+        with_items:
+             - '{{wildfly_common_modules}}+{{wf_instance.modules}}'          
+
+      - name: Deploy modules step 2 (copy binaries) - {{wf_instance.servicename}}
+        maven_artifact: 
+            group_id: '{{item.1.group_id}}'
+            artifact_id: '{{item.1.artifact_id}}'
+            extension: '{{item.1.extension}}'
+            classifier: '{{item.1.classifier|default("")}}'
+            version: '{{item.1.version}}'
+            repository_url: '{{maven.repository_url}}'
+            timeout: '{{maven.timeout}}'
+            username: '{{maven.username}}'
+            password: '{{maven.password}}'  
+            dest: '{{wf_instance.install_dir}}/modules/{{item.0.path}}/main/'      
+            owner: '{{wildfly_user}}'
+            group: '{{wildfly_group}}'
+            mode: 0755
+        ignore_errors: no       
+        when: item.0.path is defined and item.0.state == 'present'
+        with_subelements:
+             - '{{wildfly_common_modules}}+{{wf_instance.modules}}'
+             - artifacts
+
+      - name: Deploy modules step 3 (copy descriptors) - {{wf_instance.servicename}}
+        copy:      
+          src: "./envs/{{item.descriptor}}"
+          dest: "{{wf_instance.install_dir}}/modules/{{item.path}}/main/" 
+          owner: '{{wildfly_user}}'
+          group: '{{wildfly_group}}'
+          mode: 0755  
+        when: item.path is defined and item.state == 'present'
+        register: ReloadForModuleDescriptorChange
+        with_items:
+             - '{{wildfly_common_modules}}+{{wf_instance.modules}}'     
+      
+      - name: Undeploy absent modules - {{wf_instance.servicename}}        
+        shell: 'rm -rf {{wf_instance.install_dir}}/modules/{{item.path}}'
+        become: yes
+        become_user: '{{wildfly_user}}'        
+        when: item.path is defined and item.state == 'absent'
+        with_items:
+             - '{{wildfly_common_modules}}+{{wf_instance.modules}}'
+      
+      - name: Register global modules step 1 - {{wf_instance.servicename}}
+        set_fact:
+            global_modules_list: '{{ global_modules_list }},{"name" => "{{item.name}}","slot"=>"{{item.slot}}"}'
+        when: item.path is defined and item.state == 'present' and item.global == 'yes'
+        with_items:
+            - '{{wildfly_common_modules}}+{{wf_instance.modules}}'
+      
+      - set_fact:
+            global_modules_list: '[{{ global_modules_list|replace("[,","[") }}]'
+      
+      - name: Register global modules step 2 - {{wf_instance.servicename}}     
+        wildfly_attribute:
+           path: ' /subsystem=ee'
+           attr_name: 'global-modules' 
+           attr_value: '{{global_modules_list}}' 
+           cli_sh: '{{wf_instance.cli_sh}}'
+           serverAddress: '{{controller}}'
+        register: ReloadForGlobalModulesListChange
+            
+      # Создаем/удаляем источники данных JDBC
+      - name: Install datasources - {{wf_instance.servicename}}
+        wildfly_datasource: 
+           name: '{{item.name}}'
+           jndiName: '{{item.jndiName}}'
+           connectionUrl: '{{item.connectionUrl}}'
+           driverName: '{{item.driverName}}'       
+           properties: '{{item.properties|default(omit)}}'
+           userName: '{{item.userName}}'
+           password: '{{item.password}}'
+           state: '{{item.state}}'
+           cli_sh: '{{wf_instance.cli_sh}}'
+           serverAddress: '{{controller}}'
+        when: item.name is defined
+        register: ReloadForDataSourceChange
+        with_items:
+            - '{{wf_instance.datasources}}'              
+      
+      # Создаем/удаляем адаптеры ресурсов      
+      - name: Install resource_adapters - {{wf_instance.servicename}}
+        wildfly_resource_adapter: 
+          id: '{{item.id}}'
+          archive: '{{item.archive}}'
+          transactionSupport: '{{item.transactionSupport}}'
+          connectionDefinitions: '{{item.connectionDefinitions}}'
+          configProperties: '{{item.configProperties|default(omit)}}'
+          adminObjects: '{{item.adminObjects|default(omit)}}'       
+          state: '{{item.state}}'
+          cli_sh: '{{wf_instance.cli_sh}}'
+          serverAddress: '{{controller}}'
+        when: item.archive is defined
+        register: ReloadForAdapterChange
+        with_items:
+            - '{{wf_instance.resource_adapters}}'     
+            
+      # Создаем объекты конфигурации WildFly (если определены)
+      - name: Create/remove configuration objects - {{wf_instance.servicename}}
+        wildfly_object:
+          obj_path: '{{item.path}}'
+          obj_params: '{{item.parameters}}'
+          obj_state: '{{item.state}}'
+          serverAddress: '{{controller}}'
+          cli_sh: '{{wf_instance.cli_sh}}'
+        when: item.path is defined
+        with_items:
+            - '{{wf_common_objects}}+{{wf_instance.configuration_objects}}'            
+            
+      # Устанавливаем системные свойства для различных объектов конфигурации
+      - name: Set subsystem properties - {{wf_instance.servicename}}
+        wildfly_attribute:
+           path: '{{item.path}}'
+           attr_name: '{{item.name}}' 
+           attr_value: '{{item.value}}' 
+           cli_sh: '{{wf_instance.cli_sh}}'
+           serverAddress: '{{controller}}'
+        when: item.name is defined
+        with_items:
+            - '{{wf_common_attributes}}+{{wf_instance.attributes}}'            
+      
+      # Копируем из шаблонов файлы со скриптами во временный каталог
+      - name: Copy configuration scripts - {{wf_instance.servicename}}
+        template:          
+          src: "{{item}}.j2"
+          dest: "{{wf_instance.install_dir}}/standalone/tmp/{{item}}" 
+          owner: '{{wildfly_user}}'
+          group: '{{wildfly_group}}'
+          mode: 0755        
+        ignore_errors: no
+        when: wf_common_scripts is defined and wf_instance.scripts is defined
+        with_items:
+          - '{{wf_common_scripts}} + {{wf_instance.scripts}}'
+      
+      - set_fact:
+           script_reload_required: False
+      
+      # Исполняем скопированные скрипты
+      - name: Run configuration scripts
+        shell: '{{wf_instance.cli_sh}} --connect --controller={{controller}} --file={{wf_instance.install_dir}}/standalone/tmp/{{item}}'
+        args:
+           chdir: '{{wf_instance.install_dir}}/bin/'
+        register: script_out
+        when: wf_common_scripts is defined and wf_instance.scripts is defined
+        with_items:
+          - '{{wf_common_scripts}} + {{wf_instance.scripts}}'
+        
+      # Если хотя бы один из исполненных на предыдущем шаге скриптов вернул в своем stdout строку 'wildfly_reload_required' - требуется перезагрузка wildfly
+      - set_fact:
+           script_reload_required: True
+        when: script_out.results is defined and item.stdout.find('wildfly_reload_required') >= 0
+        with_items: '{{script_out.results}}'
+      
+      # Создаем каталог для хранения конфигурации модулей
+      - name: mkdir for applications binaries - {{wf_instance.servicename}}
+        file: 
+          name: "{{wf_instance.install_dir}}/standalone/configuration/modules"
+          state: directory
+          recurse: yes
+          owner: '{{wildfly_user}}'
+          group: '{{wildfly_group}}'
+          mode: 0755      
+
+      # Копируем файлы с конфигурацией
+      # Регистрируем переменную config_change_result, которая будет хранить информацию о том, какие конфиги были реально перезаписаны, чтобы 
+      # знать, какие приложения потребуют рестарта (см. задача Deploy applications)
+      - name: Copy configuration files for applications - {{wf_instance.servicename}}
+        template:          
+          src: "./envs/files/wildfly_applications/{{segment_name}}/{{wf_instance.name}}/{{item.config}}"
+          dest: "{{wf_instance.install_dir}}/standalone/configuration/modules/" 
+          owner: '{{wildfly_user}}'
+          group: '{{wildfly_group}}'
+          mode: 0755
+        when: item.config is defined and item.state == 'present'
+        register: config_change_result
+        ignore_errors: yes
+        with_items:
+         - '{{wf_instance.wildfly_applications}}'                 
+            
+      # Перезагружаем конфигурацию перед установкой приложений
+      - name: Restart service - {{wf_instance.servicename}}
+        service:
+            name: '{{wf_instance.servicename}}'
+            state: restarted
+        register: wildfly_restart_status
+        when: ReloadForDataSourceChange.changed or ReloadForAdapterChange.changed or ReloadForModuleDescriptorChange.changed or script_reload_required
+      
+      - name: Wait for wildfly restarts
+        pause:
+            minutes: 1
+        when: wildfly_restart_status.changed
+      
+      # Развертываем прикладные модули
+      - name: Deploy applications - {{wf_instance.servicename}}
+        wildfly_application:
+           applications: '{{wf_instance.wildfly_applications}}'
+           sourcepath: '{{wf_instance.binary_path}}'
+           configchangeinfo: '{{config_change_result}}'
+           serverAddress: '{{controller}}'
+           cli_sh: '{{wf_instance.cli_sh}}' 
+        register: app_deployment_result  
+      
+      - name: Get full configuration file list
+        shell: 'ls -1 {{wf_instance.install_dir}}/standalone/configuration/modules/'
+        register: config_files
+      
+      # Удаляем файлы конфигурации для отсутствующих приложений
+      - name: removing unnesessary configuration files - {{wf_instance.servicename}}
+        file: 
+          name: "{{wf_instance.install_dir}}/standalone/configuration/modules/{{item}}"
+          state: absent        
+        with_items: '{{config_files.stdout_lines}}'
+        when: item not in app_deployment_result.config_files_retention_list
+      
+      - name: Display installed modules - {{wf_instance.servicename}}
+        debug:
+           msg: '{{item}}'
+        with_items:
+         - '{{app_deployment_result.addedModules}}'
+
+      - name: Display uninstalled modules - {{wf_instance.servicename}}
+        debug:
+           msg: '{{item}}'
+        with_items:
+         - '{{app_deployment_result.removedModules}}'
+
+      - name: Display reloaded modules - {{wf_instance.servicename}}
+        debug:
+           msg: '{{item}}'
+        with_items:
+         - '{{app_deployment_result.redeployedModules}}'
+
+      - name: Display failed modules - {{wf_instance.servicename}}
+        debug:
+           msg: '{{item}}'
+        with_items:
+         - '{{app_deployment_result.failedModules}}'        
+      

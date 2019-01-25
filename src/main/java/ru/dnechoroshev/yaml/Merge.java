@@ -104,11 +104,14 @@ public class Merge {
 	}
 	
 	public static void mergeLists(List<Map<String,Object>> source,List<Map<String,Object>> target){
-		for(Map<String,Object> sourceElement : source){
-			if ("Disabled".equals(sourceElement.get("Promote"))) {
-				continue;
+		for(Object sourceElement : source){			
+			if (sourceElement instanceof Map) {
+				Map<String,Object> sourceMap = (Map<String,Object>)sourceElement; 
+				if ("Disabled".equals(sourceMap.get("Promote"))) {
+					continue;
+				}
+				mergeMapIntoListOfMaps(sourceMap, target);
 			}
-			mergeMapIntoListOfMaps(sourceElement, target);
 		}
 	}
 	
